@@ -110,14 +110,16 @@ def _hydrate(row: sqlite3.Row) -> dict:
 def search_articles(
     db: sqlite3.Connection, *, q: str = "", source: str = "",
     min_score: int = 0, days: str = "all", keyword: str = "",
-    page: int = 1, per_page: int = 20,
+    sort: str = "relevance", page: int = 1, per_page: int = 20,
 ) -> dict:
     """Run a query and return a page of hydrated rows.
 
     Returns:
-        dict(total, rows, page, pages, degraded, mode).
-        mode is 'fts' | 'like' | 'list'. degraded is True only when a non-empty
-        query was too short for FTS and fell back to LIKE.
+        dict(total, rows, page, pages, degraded, mode, sort).
+        mode is 'fts' | 'like' | 'list'. sort is the *effective* order that
+        was applied — 'relevance' only lands when mode=='fts' and the caller
+        asked for relevance; everything else falls back to 'date' because
+        LIKE/list have no bm25 signal to rank by.
     """
     filter_clauses, filter_params = _build_filters(source, min_score, days, keyword)
     q = q.strip()
@@ -137,6 +139,8 @@ def search_articles(
                 degraded = True
                 mode = "like"
 
+    effective_sort = "relevance" if (mode == "fts" and sort == "relevance") else "date"
+
     order_by_date = (
         "ORDER BY COALESCE(NULLIF(a.published_at,''), NULLIF(a.rss_published_at,''), "
         "a.archived_at) DESC, COALESCE(a.score,0) DESC"
@@ -152,6 +156,7 @@ def search_articles(
         # internal |kw|kw| serialization on screen. When a column has no match, snippet()
         # still returns leading tokens without <mark>; instr() picks the first column that
         # actually highlighted the query.
+        fts_order = "ORDER BY rank" if effective_sort == "relevance" else order_by_date
         select_sql = (
             "SELECT a.*, "
             "(SELECT iif(instr(s_sum,'<mark>'), s_sum, "
@@ -162,7 +167,7 @@ def search_articles(
             "   snippet(articles_fts, 0, '<mark>', '</mark>', '…', 12) AS s_title "
             "  FROM articles_fts WHERE articles_fts MATCH ? AND rowid=a.id)) AS snippet, "
             "(SELECT bm25(articles_fts) FROM articles_fts WHERE articles_fts MATCH ? AND rowid=a.id) AS rank "
-            f"FROM articles a WHERE {base_where} ORDER BY rank LIMIT ? OFFSET ?"
+            f"FROM articles a WHERE {base_where} {fts_order} LIMIT ? OFFSET ?"
         )
         select_params_prefix = [match_expr, match_expr] + base_params
     elif mode == "like":
@@ -200,7 +205,25 @@ def search_articles(
         "pages": pages,
         "degraded": degraded,
         "mode": mode,
+        "sort": effective_sort,
     }
+
+
+def get_article(db: sqlite3.Connection, article_id: int) -> dict | None:
+    row = db.execute("SELECT * FROM articles WHERE id=?", (article_id,)).fetchone()
+    return _hydrate(row) if row else None
+
+
+def article_paragraphs(text: str) -> list[str]:
+    """Split article_text into display paragraphs.
+
+    Real articles here separate paragraphs with a single \\n (see the DB
+    sample: bylines + prose are all single-newline-joined), so we split on
+    any run of newlines and drop empties. Blank article_text returns [].
+    """
+    if not text:
+        return []
+    return [line.strip() for line in re.split(r"\n+", text) if line.strip()]
 
 
 def total_articles(db: sqlite3.Connection) -> int:
@@ -224,6 +247,36 @@ def list_sources(db: sqlite3.Connection) -> list[str]:
     return [r[0] for r in rows if r[0]]
 
 
+_DISPLAY_DATE_NO_ALIAS = (
+    "substr(COALESCE(NULLIF(published_at,''), NULLIF(rss_published_at,''), "
+    "NULLIF(crawled_at,''), archived_at), 1, 10)"
+)
+
+
+def company_counts(
+    db: sqlite3.Connection, days: int | None = 30, limit: int = 100
+) -> list[dict]:
+    """Aggregate mentions of companies across articles within the last N days.
+
+    companies is stored as a JSON list per row, so we unnest via json_each
+    and group by value. Same date-window semantics as keyword_counts.
+    """
+    date_clause = ""
+    extra: list = []
+    if days is not None and days > 0:
+        cutoff = (date.today() - timedelta(days=days)).isoformat()
+        date_clause = f" AND {_DISPLAY_DATE_NO_ALIAS} >= ?"
+        extra = [cutoff]
+    rows = db.execute(
+        "SELECT je.value AS company, COUNT(*) AS n "
+        "FROM articles, json_each(articles.companies) je "
+        f"WHERE je.value != ''{date_clause} "
+        "GROUP BY je.value ORDER BY n DESC, company LIMIT ?",
+        extra + [limit],
+    ).fetchall()
+    return [{"name": r["company"], "count": r["n"]} for r in rows]
+
+
 def keyword_counts(
     db: sqlite3.Connection, keywords: Iterable[str], days: int | None = 30
 ) -> list[dict]:
@@ -238,11 +291,7 @@ def keyword_counts(
     extra: list = []
     if days is not None and days > 0:
         cutoff = (date.today() - timedelta(days=days)).isoformat()
-        date_expr = (
-            "substr(COALESCE(NULLIF(published_at,''), NULLIF(rss_published_at,''), "
-            "NULLIF(crawled_at,''), archived_at), 1, 10)"
-        )
-        date_clause = f" AND {date_expr} >= ?"
+        date_clause = f" AND {_DISPLAY_DATE_NO_ALIAS} >= ?"
         extra = [cutoff]
     out = []
     for kw in keywords:

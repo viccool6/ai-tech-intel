@@ -1,17 +1,24 @@
 {
   "keywords": [
+    "算力",
+    "芯片",
+    "数据中心",
+    "供应链",
+    "先进封装",
+    "资本开支",
+    "产能",
+    "出口管制",
+    "推理",
     "HBM",
-    "CoWoS",
-    "CPO",
     "GPU",
     "ASIC",
-    "先进封装",
-    "液冷",
+    "CoWoS",
+    "DRAM",
     "NVIDIA",
     "TSMC",
     "SK Hynix",
     "Micron",
-    "OpenAI",
-    "Anthropic"
+    "AMD",
+    "Broadcom"
   ]
 }

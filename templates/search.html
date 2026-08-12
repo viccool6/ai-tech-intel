@@ -24,6 +24,12 @@ h2{font-size:18px;margin-top:30px}
 .keyword-chip:hover{background:#332f28;color:#fff;border-color:#332f28}
 .keyword-chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .keyword-chip.zero{opacity:.55}
+.kw-window{font-size:12px;color:var(--muted);margin:4px 0 8px}
+.kw-window a{color:var(--muted);margin:0 8px 0 0;text-decoration:none;border-bottom:1px dotted transparent}
+.kw-window a:hover{color:var(--accent);border-bottom-color:var(--accent)}
+.kw-window .active{color:var(--ink);font-weight:600;margin:0 8px 0 0}
+.toggle-link{font-size:12px;color:var(--muted);margin-left:6px;text-decoration:none;border-bottom:1px dotted var(--muted);align-self:center}
+.toggle-link:hover{color:var(--accent);border-bottom-color:var(--accent)}
 .result-note{font-size:13px;color:var(--muted);margin-top:12px}
 .banner{background:#fff5d6;border:1px solid #e5c974;border-radius:5px;padding:10px 14px;font-size:13px;color:#6f5c1c;margin:14px 0}
 table{width:100%;border-collapse:collapse;background:#fff;font-size:13px}
@@ -81,14 +87,32 @@ mark{background:#fff2a8;padding:0 1px}
   </div>
 
   <div class="keyword-title">监控关键词（点击筛选，再点取消）</div>
+  <div class="kw-window">
+    统计窗口：
+    {% for opt, label in [('7','近7天'),('30','近30天'),('90','近90天'),('all','全部')] %}
+      {% if kw_days == opt %}<span class="active">{{ label }}</span>
+      {% else %}<a href="{{ page_url(kw_days=opt) }}">{{ label }}</a>{% endif %}
+    {% endfor %}
+  </div>
+  {% set zero_hidden = keyword_stats | selectattr('count', 'equalto', 0) | rejectattr('keyword', 'equalto', active_keyword) | list | length %}
   <div class="keyword-list">
     {% for item in keyword_stats %}
-      {% if item.keyword == active_keyword %}
-        <a class="keyword-chip active" href="{{ page_url(keyword=None, page=None) }}">{{ item.keyword }}（{{ item.count }}）</a>
-      {% else %}
-        <a class="keyword-chip{% if item.count == 0 %} zero{% endif %}" href="{{ page_url(keyword=item.keyword, page=None) }}">{{ item.keyword }}（{{ item.count }}）</a>
+      {% set is_active = (item.keyword == active_keyword) %}
+      {% if is_active or item.count > 0 or show_zero %}
+        {% if is_active %}
+          <a class="keyword-chip active" href="{{ page_url(keyword=None, page=None) }}">{{ item.keyword }}（{{ item.count }}）</a>
+        {% else %}
+          <a class="keyword-chip{% if item.count == 0 %} zero{% endif %}" href="{{ page_url(keyword=item.keyword, page=None) }}">{{ item.keyword }}（{{ item.count }}）</a>
+        {% endif %}
       {% endif %}
     {% endfor %}
+    {% if zero_hidden > 0 %}
+      {% if show_zero %}
+        <a class="toggle-link" href="{{ page_url(show_zero=None) }}">收起 0 命中</a>
+      {% else %}
+        <a class="toggle-link" href="{{ page_url(show_zero=1) }}">显示全部（+{{ zero_hidden }} 未命中）</a>
+      {% endif %}
+    {% endif %}
   </div>
   <div class="result-note">
     {% if total == 0 %}

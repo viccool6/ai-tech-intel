@@ -54,6 +54,17 @@ def create_app() -> Flask:
         if page < 1:
             page = 1
 
+        kw_days_raw = args.get("kw_days", "30") or "30"
+        if kw_days_raw == "all":
+            kw_days: int | None = None
+        else:
+            try:
+                kw_days = max(1, int(kw_days_raw))
+            except ValueError:
+                kw_days = 30
+                kw_days_raw = "30"
+        show_zero = args.get("show_zero", "") == "1"
+
         db = get_db()
         per_page = app.config["PER_PAGE"]
         result = search_articles(
@@ -69,7 +80,9 @@ def create_app() -> Flask:
             total=result["total"], rows=result["rows"],
             degraded=result["degraded"], mode=result["mode"],
             sources=list_sources(db),
-            keyword_stats=keyword_counts(db, keywords),
+            keyword_stats=keyword_counts(db, keywords, days=kw_days),
+            kw_days=kw_days_raw,
+            show_zero=show_zero,
             total_all=total_articles(db),
             latest_updated=latest_archived_at(db),
         )

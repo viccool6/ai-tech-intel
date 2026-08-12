@@ -224,12 +224,31 @@ def list_sources(db: sqlite3.Connection) -> list[str]:
     return [r[0] for r in rows if r[0]]
 
 
-def keyword_counts(db: sqlite3.Connection, keywords: Iterable[str]) -> list[dict]:
+def keyword_counts(
+    db: sqlite3.Connection, keywords: Iterable[str], days: int | None = 30
+) -> list[dict]:
+    """Count matched articles per keyword, optionally within the last N days.
+
+    days=None → all-time. The date used is the same display-date fallback
+    chain the results table uses (published_at → rss_published_at →
+    crawled_at → archived_at), so the chip counts stay consistent with
+    what the 时间 filter can actually reach.
+    """
+    date_clause = ""
+    extra: list = []
+    if days is not None and days > 0:
+        cutoff = (date.today() - timedelta(days=days)).isoformat()
+        date_expr = (
+            "substr(COALESCE(NULLIF(published_at,''), NULLIF(rss_published_at,''), "
+            "NULLIF(crawled_at,''), archived_at), 1, 10)"
+        )
+        date_clause = f" AND {date_expr} >= ?"
+        extra = [cutoff]
     out = []
     for kw in keywords:
         n = db.execute(
-            "SELECT COUNT(*) FROM articles WHERE matched_keywords LIKE ?",
-            (f"%|{kw}|%",),
+            f"SELECT COUNT(*) FROM articles WHERE matched_keywords LIKE ?{date_clause}",
+            [f"%|{kw}|%"] + extra,
         ).fetchone()[0]
         out.append({"keyword": kw, "count": n})
     return out

@@ -8,6 +8,7 @@ from src.fetchers import fetch_source
 from src.html_generator import HtmlGenerator
 from src.keywords import add_keyword, load_keywords, remove_keyword
 from src.storage import Storage
+from src.translator import translate_text
 from src.utils import env_bool, load_json, normalize_url
 
 BASE=Path(__file__).resolve().parent
@@ -32,7 +33,21 @@ def args():
     p.add_argument("--add-keyword",help="新增一个监控关键词后重建索引")
     p.add_argument("--remove-keyword",help="删除一个监控关键词后重建索引")
     p.add_argument("--list-keywords",action="store_true",help="列出全部监控关键词")
+    p.add_argument("--translate",action="store_true",help="对历史 4-5 分文章批量翻译正文（不重新抓取）")
+    p.add_argument("--only-missing",action="store_true",help="与 --translate 配合，只处理未成功翻译的文章（跳过已 success）")
+    p.add_argument("--translate-limit",type=int,default=0,help="--translate 处理篇数上限，0=不限")
+    p.add_argument("--no-translate",action="store_true",help="常规抓取时禁用自动翻译（省 API 或 dry-run）")
     return p.parse_args()
+
+
+def _should_translate(item: dict) -> bool:
+    """Auto-translation gate: score>=4, fetch succeeded, body long enough.
+    Kept here (not in translator.py) because translator only knows text."""
+    return (
+        int(item.get("score") or 0) >= 4
+        and item.get("fetch_status") == "success"
+        and len(item.get("article_text") or "") > 500
+    )
 
 def logging_setup():
     d=BASE/"data/logs"; d.mkdir(parents=True,exist_ok=True)
@@ -172,7 +187,34 @@ def main():
         print(f"历史日期修复完成：处理{repaired}篇｜网页识别{verified}篇｜页面不显示日期{failed}篇")
         return 0
 
-    fetched=new=dup=content_fail=summary_only=0
+    if a.translate:
+        candidates=storage.articles_needing_translation(only_missing=a.only_missing,limit=a.translate_limit)
+        if not candidates:
+            print("没有符合条件的文章需要翻译（score>=4 且 fetch=success 且正文>500 字"+ ("；已排除 translate_status=success 的" if a.only_missing else "") +"）")
+            storage.close(); return 0
+        ok=partial=failed=skipped=0
+        for index, article in enumerate(candidates, 1):
+            logging.info("翻译 [%s/%s]（score %s / %s 字）：%s",
+                         index, len(candidates), article.get("score"),
+                         len(article.get("article_text") or ""),
+                         article.get("title_original",""))
+            result=translate_text(article.get("article_text") or "", force_no_ai=a.no_ai)
+            storage.update_translation(int(article["id"]),
+                                        result.get("article_text_cn",""),
+                                        result.get("translate_status",""),
+                                        result.get("translate_model",""))
+            status=result.get("translate_status","")
+            if status=="success": ok+=1
+            elif status=="partial": partial+=1
+            elif status=="skipped": skipped+=1
+            else: failed+=1
+            if result.get("translate_error"):
+                logging.warning("翻译提示：%s", result["translate_error"])
+        storage.close()
+        print(f"翻译完成：成功{ok}篇｜部分{partial}篇｜失败{failed}篇｜跳过{skipped}篇｜合计{len(candidates)}篇")
+        return 0
+
+    fetched=new=dup=content_fail=summary_only=translated_ok=translated_fail=0
     threshold=float(os.getenv("TITLE_SIMILARITY_THRESHOLD","0.88"))
     for source in sources:
         logging.info("抓取：%s",source.get("name"))
@@ -204,6 +246,15 @@ def main():
             if a.dry_run:
                 print(json.dumps(item,ensure_ascii=False,indent=2)[:3000]); continue
             item.update(analyze(item,rules,prompt,force_no_ai=a.no_ai))
+            # Auto-translate 4-5 分 English bodies before save so article_text_cn
+            # lands in the same INSERT. --no-translate disables this leg entirely.
+            if not a.no_translate and _should_translate(item):
+                tr=translate_text(item.get("article_text") or "", force_no_ai=a.no_ai)
+                item.update(tr)
+                if tr.get("translate_status")=="success": translated_ok+=1
+                elif tr.get("translate_status") in ("partial","failed"): translated_fail+=1
+                if tr.get("translate_error"):
+                    logging.info("翻译提示：%s", tr["translate_error"])
             item["archive_file"]=html.article(item)
             storage.save(item); new+=1
             logging.info("归档 [%s分/%s] %s",item["score"],item["ai_status"],item["title_cn"])
@@ -211,6 +262,7 @@ def main():
     storage.close()
     print("\n===== 运行报告 =====")
     print(f"抓取：{fetched}｜新增：{new}｜重复：{dup}｜完整正文不足：{summary_only}｜内容失败：{content_fail}")
+    print(f"翻译：{translated_ok}成功｜{translated_fail}失败或部分")
     print(f"索引：{BASE/'档案库/index.html'}")
     if not any(os.getenv(name) for name in ("AI_API_KEY","OPENROUTER_API_KEY","OPENAI_API_KEY","DEEPSEEK_API_KEY","SILICONFLOW_API_KEY")) and not a.no_ai: print("提示：未配置AI_API_KEY或兼容供应商密钥，本次自动使用规则回退。")
     return 0

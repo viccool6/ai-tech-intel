@@ -34,9 +34,21 @@ a{color:var(--accent)}
 .summary{background:#f1ede5;border:1px solid var(--line);padding:18px 20px;margin:24px 0;border-radius:5px}
 .reason{border-top:1px dashed #d5cec2;border-bottom:1px dashed #d5cec2;padding:11px 0;color:#a73d31;font-size:13px}
 img{max-width:100%;height:auto;margin:18px 0}
-.article-body{max-width:640px;margin:20px auto 30px;font-size:15px;line-height:2;color:#2d2a25}
-.article-body p{margin:0 0 1.3em;text-indent:2em}
-.article-body p:first-child{text-indent:0}
+.article-body{max-width:680px;margin:20px auto 30px;color:#2d2a25}
+/* Bilingual pair styling from 归档模板/单篇归档模板.html:
+   English lead paragraph in Georgia italic grey, immediately followed by
+   its Chinese translation tightly beneath so the eye can zip line-by-line.
+   .zh margin-bottom carries the paragraph gap so the .en of the next pair
+   sits far enough from the previous .zh. */
+.article-body .en{font-family:Georgia,"Times New Roman",serif;font-style:italic;color:#9a9382;font-size:13.5px;line-height:1.85;margin:18px 0 3px}
+.article-body .zh{font-size:16.5px;line-height:2;color:#232323;margin:3px 0 20px}
+.article-body.only-cn .zh{margin-top:0}
+.article-body.only-cn p:first-child{margin-top:0}
+.view-toggle{max-width:680px;margin:14px auto 0;font-size:12px;color:var(--muted);text-align:right}
+.view-toggle a{color:var(--muted);text-decoration:none;border-bottom:1px dotted transparent;margin-left:8px}
+.view-toggle a:hover{color:var(--accent);border-bottom-color:var(--accent)}
+.view-toggle .active{color:var(--ink);font-weight:600;margin-left:8px}
+.translate-note{max-width:680px;margin:6px auto 0;font-size:12px;color:var(--muted);text-align:right}
 .empty-body{max-width:640px;margin:20px auto;padding:18px 20px;background:#fff;border:1px dashed #cfc6b8;border-radius:5px;color:var(--muted);text-align:center;font-size:14px}
 details{background:#fff;border:1px solid var(--line);border-radius:6px;padding:12px 16px;margin:20px 0}
 summary{cursor:pointer;font-weight:700}
@@ -67,6 +79,14 @@ summary{cursor:pointer;font-weight:700}
     <span class="trust warn"><span class="dot"></span>仅有摘要，非完整正文</span>
   {% else %}
     <span class="trust bad"><span class="dot"></span>正文抓取失败</span>
+  {% endif %}
+  {# Translation status only shown when the article ran through the translator #}
+  {% if article.translate_status == 'success' %}
+    <span class="trust good"><span class="dot"></span>双语正文 ✓{% if article.translate_model %}（{{ article.translate_model }}）{% endif %}</span>
+  {% elif article.translate_status == 'partial' %}
+    <span class="trust warn"><span class="dot"></span>双语正文部分成功</span>
+  {% elif article.translate_status == 'failed' %}
+    <span class="trust bad"><span class="dot"></span>翻译失败</span>
   {% endif %}
 </div>
 
@@ -107,9 +127,38 @@ summary{cursor:pointer;font-weight:700}
 
 <h2>抓取到的正文</h2>
 {% if article.paragraphs %}
-<div class="article-body">
-  {% for p in article.paragraphs %}<p>{{ p }}</p>{% endfor %}
-</div>
+  {% if article.paragraphs_cn %}
+  <div class="view-toggle">
+    显示：
+    {% if view == 'cn' %}
+      <a href="{{ page_url(view='both') }}">中英对照</a>
+      <span class="active">只看中文</span>
+    {% else %}
+      <span class="active">中英对照</span>
+      <a href="{{ page_url(view='cn') }}">只看中文</a>
+    {% endif %}
+  </div>
+  {% if article.translate_status == 'partial' %}
+  <div class="translate-note">⚠ 本篇存在部分段落翻译失败，页面上以 [本段翻译失败] 标识；如需重试可运行 <code>run.py --translate --only-missing</code>。</div>
+  {% endif %}
+  <div class="article-body{% if view == 'cn' %} only-cn{% endif %}">
+    {% for i in range(article.paragraphs|length) %}
+      {% if view != 'cn' %}<p class="en">{{ article.paragraphs[i] }}</p>{% endif %}
+      {% if i < article.paragraphs_cn|length %}<p class="zh">{{ article.paragraphs_cn[i] }}</p>{% endif %}
+    {% endfor %}
+    {# If translation returned more paragraphs than the source (shouldn't happen), show the remainder anyway #}
+    {% if article.paragraphs_cn|length > article.paragraphs|length %}
+      {% for j in range(article.paragraphs|length, article.paragraphs_cn|length) %}
+        <p class="zh">{{ article.paragraphs_cn[j] }}</p>
+      {% endfor %}
+    {% endif %}
+  </div>
+  {% else %}
+  {# No translation yet — render original as before (no bilingual pairs) #}
+  <div class="article-body">
+    {% for p in article.paragraphs %}<p class="en">{{ p }}</p>{% endfor %}
+  </div>
+  {% endif %}
 {% else %}
 <div class="empty-body">
   正文未抓取成功{% if article.fetch_error %}（{{ article.fetch_error }}）{% endif %}。

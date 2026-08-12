@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS articles(
  score INTEGER, score_reason TEXT, industry_tags TEXT, companies TEXT, worth_attention INTEGER,
  archive_file TEXT, fetch_status TEXT, fetch_error TEXT,
  ai_status TEXT, ai_model TEXT, ai_error TEXT, link_resolver TEXT,
- matched_keywords TEXT
+ matched_keywords TEXT,
+ article_text_cn TEXT, translate_status TEXT, translate_model TEXT
 );
 """
 
@@ -36,12 +37,14 @@ MIGRATIONS = {
     "worth_attention": "INTEGER", "archive_file": "TEXT", "fetch_status": "TEXT",
     "fetch_error": "TEXT", "ai_status": "TEXT", "ai_model": "TEXT", "ai_error": "TEXT",
     "link_resolver": "TEXT", "matched_keywords": "TEXT",
+    "article_text_cn": "TEXT", "translate_status": "TEXT", "translate_model": "TEXT",
 }
 
 # Columns mirrored into the FTS5 shadow table. matched_keywords is included so
-# the search box can hit监控关键词 as first-class content.
+# the search box can hit监控关键词 as first-class content; article_text_cn so
+# Chinese-only monitor keywords catch translated bodies.
 FTS_COLUMNS = [
-    "title_cn", "title_original", "summary_cn", "article_text",
+    "title_cn", "title_original", "summary_cn", "article_text", "article_text_cn",
     "publisher", "source_name", "industry_tags", "companies", "matched_keywords",
 ]
 
@@ -92,6 +95,11 @@ class Storage:
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_published ON articles(published_at)")
         self.conn.execute(FTS_SCHEMA)
         self.conn.executescript(FTS_TRIGGERS)
+        # If FTS_COLUMNS grew since the DB was created (e.g. article_text_cn
+        # was added in a later round), the IF NOT EXISTS calls above are no-ops
+        # and the shadow ends up stale. Detect and rebuild in-place.
+        if not self._fts_schema_current():
+            self._rebuild_fts_schema()
         self.conn.commit()
         self.keywords: list[str] = list(keywords) if keywords else []
 
@@ -146,6 +154,7 @@ class Storage:
             "score", "score_reason", "industry_tags", "companies", "worth_attention", "archive_file",
             "fetch_status", "fetch_error", "ai_status", "ai_model", "ai_error", "link_resolver",
             "matched_keywords",
+            "article_text_cn", "translate_status", "translate_model",
         ]
         values = []
         for field in fields:
@@ -201,6 +210,42 @@ class Storage:
         self.conn.commit()
         self._refresh_matched(article_id)
 
+    def update_translation(self, article_id: int, article_text_cn: str, status: str, model: str) -> None:
+        """Persist a translation result. Refreshes matched_keywords too, since
+        article_text_cn now feeds the keyword-match haystack — Chinese-only
+        monitor keywords (e.g. 台积电) only catch translated bodies."""
+        self.conn.execute(
+            "UPDATE articles SET article_text_cn=?, translate_status=?, translate_model=? WHERE id=?",
+            (article_text_cn or "", status or "", model or "", article_id),
+        )
+        self.conn.commit()
+        self._refresh_matched(article_id)
+
+    def articles_needing_translation(self, only_missing: bool = True, limit: int = 0) -> list[dict]:
+        """Rows that satisfy the translate-worthy triple: score>=4, fetch=success,
+        body>500 chars. only_missing filters to rows without a successful
+        translation so --translate --only-missing can pick up where the last run
+        left off (partial or failed rows are retried whole)."""
+        where = (
+            "COALESCE(score,0) >= 4 AND fetch_status='success' "
+            "AND LENGTH(COALESCE(article_text,'')) > 500"
+        )
+        if only_missing:
+            where += " AND COALESCE(translate_status,'') <> 'success'"
+        sql = f"SELECT * FROM articles WHERE {where} ORDER BY score DESC, id DESC"
+        params: list = []
+        if limit and limit > 0:
+            sql += " LIMIT ?"
+            params.append(limit)
+        rows = self.conn.execute(sql, params).fetchall()
+        out = []
+        for row in rows:
+            item = dict(row)
+            item["industry_tags"] = json.loads(item.get("industry_tags") or "[]")
+            item["companies"] = json.loads(item.get("companies") or "[]")
+            out.append(item)
+        return out
+
     def _refresh_matched(self, article_id: int) -> None:
         if not self.keywords:
             return
@@ -237,6 +282,22 @@ class Storage:
     def _drop_fts_triggers(self) -> None:
         for name in ("articles_ai", "articles_au", "articles_ad"):
             self.conn.execute(f"DROP TRIGGER IF EXISTS {name}")
+
+    def _fts_schema_current(self) -> bool:
+        """True if articles_fts already exposes every column in FTS_COLUMNS."""
+        existing = {r[1] for r in self.conn.execute("PRAGMA table_info(articles_fts)")}
+        if not existing:
+            return False
+        return set(FTS_COLUMNS).issubset(existing)
+
+    def _rebuild_fts_schema(self) -> None:
+        """Drop and recreate the FTS shadow + triggers, then reload from source."""
+        self._drop_fts_triggers()
+        self.conn.execute("DROP TABLE IF EXISTS articles_fts")
+        self.conn.execute(FTS_SCHEMA)
+        self.conn.executescript(FTS_TRIGGERS)
+        self.conn.execute("INSERT INTO articles_fts(articles_fts) VALUES('rebuild')")
+        self.conn.commit()
 
     def rematch_keywords(self) -> int:
         """Recompute matched_keywords for every row against self.keywords.

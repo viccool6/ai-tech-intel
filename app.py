@@ -27,6 +27,11 @@ PER_PAGE = 10
 # back button restores the exact result set the user was on.
 FILTER_KEYS = ("q", "source", "score", "days", "keyword", "sort", "kw_days", "show_zero", "page")
 
+# The view=cn|both param controls bilingual toggle on the article page; carry
+# it around like the FILTER_KEYS but keep it separate — search page doesn't
+# consume it and shouldn't emit it either.
+ARTICLE_KEYS = FILTER_KEYS + ("view",)
+
 
 def _parse_kw_days(raw: str) -> tuple[int | None, str]:
     """Return (int_or_None_for_all, canonical_string) for the kw_days param."""
@@ -110,18 +115,24 @@ def create_app() -> Flask:
         if not art:
             abort(404)
         art["paragraphs"] = article_paragraphs(art.get("article_text", ""))
-        return render_template("article.html", article=art)
+        art["paragraphs_cn"] = article_paragraphs(art.get("article_text_cn", ""))
+        view = request.args.get("view", "both")
+        if view not in ("both", "cn"):
+            view = "both"
+        return render_template("article.html", article=art, view=view)
 
     @app.template_global()
     def page_url(**overrides):
-        """URL to the current route preserving query params. value=None drops a key."""
+        """URL to the current route preserving query params AND path vars
+        (like article_id). value=None drops a key."""
         args = dict(request.args)
         for k, v in overrides.items():
             if v is None or v == "":
                 args.pop(k, None)
             else:
                 args[k] = v
-        return url_for(request.endpoint or "search", **args)
+        view_args = dict(request.view_args or {})
+        return url_for(request.endpoint or "search", **view_args, **args)
 
     @app.template_global()
     def back_search_url():

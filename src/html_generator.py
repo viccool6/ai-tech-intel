@@ -45,7 +45,7 @@ class HtmlGenerator:
         prepared["ai_succeeded"] = prepared.get("ai_status") == "success"
         prepared["date_is_verified"] = prepared.get("date_source") in {"jsonld.datePublished", "meta.article:published_time", "visible.labelled_publish_date", "webpage"} and bool(prepared.get("published_at"))
         (directory / name).write_text(
-            self.env.get_template("article.html").render(article=prepared), encoding="utf-8"
+            self.env.get_template("article_archive.html").render(article=prepared), encoding="utf-8"
         )
         return f"{date}/{name}"
 

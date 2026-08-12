@@ -1,0 +1,29 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ article.title_cn or article.title_original }}</title>
+<style>
+:root{--ink:#24221f;--muted:#777166;--paper:#faf8f4;--line:#ded8cc;--accent:#b5372e}
+*{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;max-width:920px;margin:auto;padding:34px 22px;color:var(--ink);background:var(--paper);line-height:1.85}h1,h2{font-family:"Songti SC",serif}h1{font-size:29px;line-height:1.45;margin:18px 0 4px}.en-title{color:#8b857a;font-size:14px;margin-bottom:22px}.meta{border-top:2px solid var(--ink);border-bottom:1px solid var(--line);padding:12px 0;font-size:13px;color:#777166}.badge{display:inline-block;color:#fff;background:#c0392b;padding:2px 10px;font-weight:700;border-radius:3px}.score4{background:#d68a2c}.score3{background:#b29c3f}.score2{background:#8b857a}.score1{background:#bcb4a8;color:#332f28}.tag{display:inline-block;border:1px solid #d9d2c6;padding:0 8px;margin:3px;border-radius:3px;font-size:12px}.keyword{display:inline-block;background:#fff2a8;padding:0 8px;margin:3px;border-radius:3px;font-size:12px;color:#514719}.summary{background:#f1ede5;border:1px solid var(--line);padding:18px 20px;margin:24px 0;border-radius:5px}.reason{border-top:1px dashed #d5cec2;border-bottom:1px dashed #d5cec2;padding:11px 0;color:#a73d31;font-size:13px}.original{white-space:pre-wrap;color:#4f4a43;font-family:Georgia,"Times New Roman",serif;font-size:14px}.notice{font-size:12px;color:#8b857a;margin-top:42px;border-top:1px solid var(--line);padding-top:12px}a{color:var(--accent)}img{max-width:100%;height:auto;margin:18px 0}.back{font-size:13px;margin-bottom:12px}.source-card{background:#fff;border:1px solid var(--line);border-radius:6px;padding:14px 16px;margin:18px 0}.source-grid{display:grid;grid-template-columns:120px 1fr;gap:7px 12px;font-size:13px}.label{color:var(--muted)}.original-button{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;padding:9px 15px;border-radius:5px;font-weight:700;margin-top:12px}.date-warning{color:#a46a18;font-weight:700}.verified{color:#2e6b47;font-weight:700}details{background:#fff;border:1px solid var(--line);border-radius:6px;padding:12px 16px;margin:20px 0}summary{cursor:pointer;font-weight:700}
+@media(max-width:600px){.source-grid{grid-template-columns:1fr}.label{font-weight:700}}
+</style></head><body>
+<div class="back"><a href="../index.html">← 返回检索索引</a></div>
+<div class="meta"><span class="badge score{{ article.score }}">重要性 {{ article.score }}</span>{% for tag in article.industry_tags %}<span class="tag">{{ tag }}</span>{% endfor %}{% for keyword in article.matched_keywords %}<span class="keyword">{{ keyword }}</span>{% endfor %}</div>
+<h1>{{ article.title_cn or article.title_original }}</h1><div class="en-title">{{ article.title_original }}</div>
+<div class="source-card"><div class="source-grid">
+<div class="label">真实来源</div><div>{{ article.publisher or article.source_name or "未识别" }}</div>
+<div class="label">作者</div><div>{{ article.author or "未披露/未识别" }}</div>
+{% if article.date_is_verified %}<div class="label">发布日期</div><div><span class="verified">{{ article.published_at[:10] }}</span></div>{% endif %}
+<div class="label">涉及公司</div><div>{{ article.companies|join("、") if article.companies else "未识别" }}</div>
+</div><a class="original-button" href="{{ article.url }}" target="_blank" rel="noopener noreferrer">打开原文网页 ↗</a></div>
+<div class="status-note" style="margin:16px 0;padding:12px;border:1px solid #ddd;">
+  <strong>正文状态：</strong>
+  {% if article.fetch_status == 'success' %}已抓取完整正文
+  {% elif article.fetch_status == 'summary_only' %}仅抓到摘要或片段，不应视为完整原文
+  {% else %}正文抓取失败{% endif %}
+  {% if article.fetch_error %}<br><small>{{ article.fetch_error }}</small>{% endif %}
+</div>
+{% if article.ai_succeeded %}<div class="summary"><b>AI中文摘要：</b>{{ article.summary_cn }}</div><div class="reason"><b>AI打分理由：</b>{{ article.score_reason }}</div>{% else %}<div class="summary"><b>原始摘要/规则回退：</b>{{ article.summary_cn }}</div><div class="reason"><b>状态说明：</b>AI处理失败，本页仅展示原始摘要与关键词规则评分，不应视为AI翻译或AI结论。{% if article.ai_error %} 错误：{{ article.ai_error }}{% endif %}</div>{% endif %}
+{% if article.main_image %}<img src="{{ article.main_image }}" alt="文章主图">{% endif %}
+<h2>抓取到的正文</h2><div class="original">{{ article.article_text or article.rss_summary or "正文抓取失败，请点击上方“打开原文网页”。" }}</div>
+<details><summary>查看链接与采集信息</summary><p><b>最终原文链接：</b><a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">{{ article.url }}</a></p>{% if article.original_url and article.original_url != article.url %}<p><b>RSS初始链接：</b>{{ article.original_url }}</p>{% endif %}<p><b>正文状态：</b>{{ article.fetch_status }}{% if article.fetch_error %}；{{ article.fetch_error }}{% endif %}</p></details>
+<div class="notice">AI状态：{{ "成功" if article.ai_succeeded else "失败/规则回退" }}{% if article.ai_model %}（{{ article.ai_model }}）{% endif %}。发布日期来自原网页的文章级结构化数据、明确发布元数据，或标题附近带“Published/发布日期”等标签的可见日期；无法可靠识别时不显示日期。RSS时间仅用于内部抓取和排序，不冒充发布日期。关键数字请回到原文核验。</div>
+</body></html>

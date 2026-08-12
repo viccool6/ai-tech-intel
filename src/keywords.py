@@ -68,6 +68,9 @@ def searchable_text(article: dict) -> str:
         article.get("summary_cn", ""),
         article.get("rss_summary", ""),
         article.get("article_text", ""),
+        # Translated body: Chinese-only monitor keywords (台积电, 英伟达, ...)
+        # only catch English articles once we've translated them.
+        article.get("article_text_cn", ""),
         article.get("publisher", ""),
         article.get("source_name", ""),
         " ".join(article.get("industry_tags") or []),

@@ -36,6 +36,7 @@ def args():
     p.add_argument("--translate",action="store_true",help="对历史 4-5 分文章批量翻译正文（不重新抓取）")
     p.add_argument("--only-missing",action="store_true",help="与 --translate 配合，只处理未成功翻译的文章（跳过已 success）")
     p.add_argument("--translate-limit",type=int,default=0,help="--translate 处理篇数上限，0=不限")
+    p.add_argument("--translate-id",type=int,default=0,help="只翻这一篇（按 articles.id），绕过 score/fetch/length/only-missing 全部筛选；用于改完提示词后强制重翻")
     p.add_argument("--no-translate",action="store_true",help="常规抓取时禁用自动翻译（省 API 或 dry-run）")
     return p.parse_args()
 
@@ -188,9 +189,16 @@ def main():
         return 0
 
     if a.translate:
-        candidates=storage.articles_needing_translation(only_missing=a.only_missing,limit=a.translate_limit)
+        candidates=storage.articles_needing_translation(
+            only_missing=a.only_missing,
+            limit=a.translate_limit,
+            article_id=a.translate_id or None,
+        )
         if not candidates:
-            print("没有符合条件的文章需要翻译（score>=4 且 fetch=success 且正文>500 字"+ ("；已排除 translate_status=success 的" if a.only_missing else "") +"）")
+            if a.translate_id:
+                print(f"数据库里没有 id={a.translate_id} 的文章")
+            else:
+                print("没有符合条件的文章需要翻译（score>=4 且 fetch=success 且正文>500 字"+ ("；已排除 translate_status=success 的" if a.only_missing else "") +"）")
             storage.close(); return 0
         ok=partial=failed=skipped=0
         for index, article in enumerate(candidates, 1):

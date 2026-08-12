@@ -221,23 +221,33 @@ class Storage:
         self.conn.commit()
         self._refresh_matched(article_id)
 
-    def articles_needing_translation(self, only_missing: bool = True, limit: int = 0) -> list[dict]:
+    def articles_needing_translation(
+        self, only_missing: bool = True, limit: int = 0, article_id: int | None = None,
+    ) -> list[dict]:
         """Rows that satisfy the translate-worthy triple: score>=4, fetch=success,
         body>500 chars. only_missing filters to rows without a successful
         translation so --translate --only-missing can pick up where the last run
-        left off (partial or failed rows are retried whole)."""
-        where = (
-            "COALESCE(score,0) >= 4 AND fetch_status='success' "
-            "AND LENGTH(COALESCE(article_text,'')) > 500"
-        )
-        if only_missing:
-            where += " AND COALESCE(translate_status,'') <> 'success'"
-        sql = f"SELECT * FROM articles WHERE {where} ORDER BY score DESC, id DESC"
-        params: list = []
-        if limit and limit > 0:
-            sql += " LIMIT ?"
-            params.append(limit)
-        rows = self.conn.execute(sql, params).fetchall()
+        left off (partial or failed rows are retried whole).
+
+        article_id, when given, targets a single row and bypasses ALL of the
+        above filters — the caller is asking for an explicit override, typically
+        to re-translate an already-successful row after a prompt change.
+        """
+        if article_id is not None:
+            rows = self.conn.execute("SELECT * FROM articles WHERE id=?", (article_id,)).fetchall()
+        else:
+            where = (
+                "COALESCE(score,0) >= 4 AND fetch_status='success' "
+                "AND LENGTH(COALESCE(article_text,'')) > 500"
+            )
+            if only_missing:
+                where += " AND COALESCE(translate_status,'') <> 'success'"
+            sql = f"SELECT * FROM articles WHERE {where} ORDER BY score DESC, id DESC"
+            params: list = []
+            if limit and limit > 0:
+                sql += " LIMIT ?"
+                params.append(limit)
+            rows = self.conn.execute(sql, params).fetchall()
         out = []
         for row in rows:
             item = dict(row)

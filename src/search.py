@@ -110,7 +110,7 @@ def _hydrate(row: sqlite3.Row) -> dict:
 def search_articles(
     db: sqlite3.Connection, *, q: str = "", source: str = "",
     min_score: int = 0, days: str = "all", keyword: str = "",
-    sort: str = "relevance", page: int = 1, per_page: int = 20,
+    sort: str = "relevance", page: int = 1, per_page: int = 10,
 ) -> dict:
     """Run a query and return a page of hydrated rows.
 
@@ -251,30 +251,6 @@ _DISPLAY_DATE_NO_ALIAS = (
     "substr(COALESCE(NULLIF(published_at,''), NULLIF(rss_published_at,''), "
     "NULLIF(crawled_at,''), archived_at), 1, 10)"
 )
-
-
-def company_counts(
-    db: sqlite3.Connection, days: int | None = 30, limit: int = 100
-) -> list[dict]:
-    """Aggregate mentions of companies across articles within the last N days.
-
-    companies is stored as a JSON list per row, so we unnest via json_each
-    and group by value. Same date-window semantics as keyword_counts.
-    """
-    date_clause = ""
-    extra: list = []
-    if days is not None and days > 0:
-        cutoff = (date.today() - timedelta(days=days)).isoformat()
-        date_clause = f" AND {_DISPLAY_DATE_NO_ALIAS} >= ?"
-        extra = [cutoff]
-    rows = db.execute(
-        "SELECT je.value AS company, COUNT(*) AS n "
-        "FROM articles, json_each(articles.companies) je "
-        f"WHERE je.value != ''{date_clause} "
-        "GROUP BY je.value ORDER BY n DESC, company LIMIT ?",
-        extra + [limit],
-    ).fetchall()
-    return [{"name": r["company"], "count": r["n"]} for r in rows]
 
 
 def keyword_counts(

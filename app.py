@@ -8,7 +8,6 @@ from flask import Flask, abort, g, render_template, request, url_for
 from src.keywords import load_keywords
 from src.search import (
     article_paragraphs,
-    company_counts,
     get_article,
     keyword_counts,
     latest_archived_at,
@@ -18,6 +17,10 @@ from src.search import (
 )
 
 BASE = Path(__file__).resolve().parent
+
+# Single source of truth for search result pagination — change here and
+# both the query and the template display update in lockstep.
+PER_PAGE = 10
 
 # Filter params carried across search ↔ article navigation so the
 # back button restores the exact result set the user was on.
@@ -39,7 +42,6 @@ def create_app() -> Flask:
     app = Flask(__name__, template_folder=str(BASE / "templates"))
     app.config["DB_PATH"] = str(BASE / "data/news.db")
     app.config["KEYWORDS_PATH"] = str(BASE / "config/watch_keywords.json")
-    app.config["PER_PAGE"] = 20
 
     def get_db() -> sqlite3.Connection:
         if "db" not in g:
@@ -79,10 +81,9 @@ def create_app() -> Flask:
         show_zero = args.get("show_zero", "") == "1"
 
         db = get_db()
-        per_page = app.config["PER_PAGE"]
         result = search_articles(
             db, q=q, source=source, min_score=min_score, days=days,
-            keyword=keyword, sort=sort, page=page, per_page=per_page,
+            keyword=keyword, sort=sort, page=page, per_page=PER_PAGE,
         )
         keywords = load_keywords(Path(app.config["KEYWORDS_PATH"]))
         return render_template(
@@ -90,7 +91,7 @@ def create_app() -> Flask:
             q=q, source=source, min_score=min_score, days=days,
             active_keyword=keyword,
             requested_sort=sort, sort=result["sort"],
-            page=result["page"], pages=result["pages"], per_page=per_page,
+            page=result["page"], pages=result["pages"], per_page=PER_PAGE,
             total=result["total"], rows=result["rows"],
             degraded=result["degraded"], mode=result["mode"],
             sources=list_sources(db),
@@ -109,23 +110,6 @@ def create_app() -> Flask:
             abort(404)
         art["paragraphs"] = article_paragraphs(art.get("article_text", ""))
         return render_template("article.html", article=art)
-
-    @app.route("/tags")
-    def tags():
-        args = request.args
-        kw_days, kw_days_raw = _parse_kw_days(args.get("kw_days", "30") or "30")
-        db = get_db()
-        keywords = load_keywords(Path(app.config["KEYWORDS_PATH"]))
-        return render_template(
-            "tags.html",
-            kw_days=kw_days_raw,
-            keyword_stats=sorted(
-                keyword_counts(db, keywords, days=kw_days),
-                key=lambda x: (-x["count"], x["keyword"]),
-            ),
-            company_stats=company_counts(db, days=kw_days, limit=200),
-            total_all=total_articles(db),
-        )
 
     @app.template_global()
     def page_url(**overrides):

@@ -1,0 +1,900 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI科技产业情报索引</title>
+<style>
+:root{--ink:#24221f;--muted:#777166;--paper:#faf8f4;--line:#e1dbd0;--accent:#b5372e}
+*{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;max-width:1180px;margin:auto;padding:30px 22px;color:var(--ink);background:var(--paper);line-height:1.65}
+h1,h2{font-family:"Songti SC",serif}h1{font-size:26px;border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:8px}h2{font-size:18px;margin-top:30px}.meta{color:#8b857a;font-size:13px;margin-bottom:20px}
+.panel{background:#fff;border:1px solid var(--line);padding:16px;border-radius:7px;margin:16px 0}.search-row{display:grid;grid-template-columns:minmax(260px,1fr) 180px 140px 140px;gap:10px}.search-row input,.search-row select{width:100%;border:1px solid #d7d0c5;border-radius:5px;padding:10px 12px;font-size:14px;background:#fff}.search-row input:focus,.search-row select:focus{outline:2px solid #ead0cc;border-color:var(--accent)}
+.keyword-title{font-size:13px;color:var(--muted);margin:12px 0 7px}.keyword-list{display:flex;flex-wrap:wrap;gap:7px}.keyword-chip{border:1px solid #d8d0c5;background:#f7f3ec;border-radius:999px;padding:5px 10px;cursor:pointer;font-size:12px}.keyword-chip:hover,.keyword-chip.active{background:#332f28;color:#fff;border-color:#332f28}.keyword-chip.zero{opacity:.55}.result-note{font-size:13px;color:var(--muted);margin-top:12px}
+table{width:100%;border-collapse:collapse;background:#fff;font-size:13px}th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}th{background:#f1ede5;color:var(--muted);position:sticky;top:0}.score-col{width:72px}.source-col{width:150px}.chain-col{width:150px}.company-col{width:145px}
+.badge{display:inline-block;min-width:20px;text-align:center;color:#fff;background:#c0392b;padding:2px 7px;font-weight:700;border-radius:3px}.score4{background:#d68a2c}.score3{background:#b29c3f}.score2{background:#8b857a}.score1{background:#bcb4a8;color:#332f28}
+a{color:var(--accent);text-decoration:none}.summary{color:#5f5950;font-size:12px;margin-top:4px}.hits{margin-top:5px}.hit{display:inline-block;background:#fff2a8;border-radius:3px;padding:1px 5px;margin:2px 3px 0 0;font-size:11px;color:#514719}.date-group.hidden,.news-row.hidden{display:none}.empty{display:none;background:#fff;border:1px dashed #cfc6b8;padding:22px;text-align:center;color:var(--muted);margin-top:18px}.empty.show{display:block}mark{background:#fff2a8;padding:0 1px}
+@media(max-width:820px){.search-row{grid-template-columns:1fr 1fr}.table-wrap{overflow-x:auto}table{min-width:850px}}@media(max-width:520px){.search-row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<h1>AI科技产业情报 · 本地检索库</h1>
+<div class="meta">最近更新：2026-07-23 18:55 ｜ 累计归档：26篇 ｜ 搜索只在本机浏览器完成，不上传数据库</div>
+
+<div class="panel">
+  <div class="search-row">
+    <input id="searchInput" type="search" placeholder="搜索标题、摘要、公司、标签、信源……" autocomplete="off">
+    <select id="sourceFilter"><option value="">全部信源</option><option value="fortune">Fortune</option><option value="google">Google</option><option value="google cloud blog">Google Cloud Blog</option><option value="google news">Google News</option><option value="google news · ai capex">Google News · AI CapEx</option><option value="google news · 关键人物">Google News · 关键人物</option><option value="import ai">Import AI</option><option value="investor&#39;s business daily">Investor&#39;s Business Daily</option><option value="mashable">Mashable</option><option value="nvidia blog">NVIDIA Blog</option><option value="new york post">New York Post</option><option value="openai news">OpenAI News</option><option value="semivision @_@">SEMIVISION @_@</option><option value="startup fortune">Startup Fortune</option><option value="trendforce">TrendForce</option><option value="https://247wallst.com/#organization">https://247wallst.com/#organization</option><option value="https://deepmind.google/about/">https://deepmind.google/about/</option><option value="https://the-decoder.com/#organization">https://the-decoder.com/#organization</option><option value="매일경제">매일경제</option></select>
+    <select id="scoreFilter"><option value="0">全部评分</option><option value="5">仅5分</option><option value="4">4分及以上</option><option value="3">3分及以上</option><option value="2">2分及以上</option></select>
+    <select id="dateFilter"><option value="all">全部时间</option><option value="1">最近1天</option><option value="7">最近7天</option><option value="30">最近30天</option><option value="90">最近90天</option></select>
+  </div>
+  <div class="keyword-title">监控关键词（点击即可筛选）</div>
+  <div class="keyword-list" id="keywordList">
+    <button class="keyword-chip" data-keyword="hbm">HBM（6）</button><button class="keyword-chip" data-keyword="cowos">CoWoS（2）</button><button class="keyword-chip zero" data-keyword="cpo">CPO（0）</button><button class="keyword-chip" data-keyword="gpu">GPU（8）</button><button class="keyword-chip" data-keyword="asic">ASIC（2）</button><button class="keyword-chip" data-keyword="先进封装">先进封装（5）</button><button class="keyword-chip zero" data-keyword="液冷">液冷（0）</button><button class="keyword-chip" data-keyword="nvidia">NVIDIA（7）</button><button class="keyword-chip" data-keyword="tsmc">TSMC（2）</button><button class="keyword-chip" data-keyword="sk hynix">SK Hynix（2）</button><button class="keyword-chip" data-keyword="micron">Micron（3）</button><button class="keyword-chip" data-keyword="openai">OpenAI（5）</button><button class="keyword-chip" data-keyword="anthropic">Anthropic（5）</button>
+  </div>
+  <div class="result-note" id="resultNote">当前显示 26 篇</div>
+</div>
+
+<div id="newsContainer">
+
+<section class="date-group" data-date="2026-07-23">
+<h2>2026-07-23（<span class="visible-count">11</span>篇）</h2>
+<div class="table-wrap"><table><thead><tr><th class="score-col">重要性</th><th>标题与摘要</th><th class="source-col">信源</th><th class="chain-col">产业链</th><th class="company-col">公司</th></tr></thead><tbody>
+
+<tr class="news-row" data-search="南亚科技预测2026年存储市场达8000亿美元 并斥资5000亿台币建新厂 [news] nanya tech sees memory market to reach record us$800b in 2026, nearly half of semiconductor revenue - trendforce 南亚科技副总经理约瑟夫·吴在自由时报指出，ai推理将推动2026年全球存储（dram+nand）市场规模达8000亿美元，存储占半导体收入比重可能升至近50%。他预计hbm将占dram位需求约10%，传统服务器dram超过40%，合计超50%且未来将超60%。为满足ai推理对带宽和功耗的需求，南亚科技研发基于晶圆对晶圆（wow）3d堆叠的定制uwio dram，带宽提升5‑10倍，单位位能耗降至hbm的三分之一至十分之一。同时，公司在台湾台山建设新晶圆厂，总投资约新台币5000亿元（约170亿美元），明年资本支出将超新台币2000亿元，以缩小与全球领先存储厂商的技术差距。 [news] nanya tech sees memory market to reach record us$800b in 2026, nearly half of semiconductor revenue
+as the memory upcycle broadens from hbm and leading-edge dram to legacy products, taiwanese dram maker nanya technology is emerging as a key beneficiary as ai-driven demand expands across the market. citing nanya tech senior vice president joseph wu, liberty times reports that ai inference is expected to propel the global memory market value, including dram and nand, to a record us$800 billion in 2026.
+according to wu, memory’s share of total semiconductor industry revenue could reach nearly 50% this year, significantly higher than the roughly 30% level seen historically.
+according to liberty times, wu said that as ai shifts from training to inference, demand for 3d-stacked memory — such as hbm — is expected to grow further over the next one to two years, with hbm projected to account for nearly 10% of total dram bit demand this year, while conventional server dram is expected to represent more than 40%.
+together, hbm and server dram already account for more than 50% of dram demand, and their combined share is expected to rise above 60% in the future, wu noted.
+wu, per next apple, further highlighted the growing memory intensity of ai systems: for ai servers, a single gpu may require 96 high-density dram chips, while a single cpu platform could require more than 200 high-density dram chips as ai inference gains traction.
+nanya tech bets on customized uwio dram
+however, nanya tech is not targeting the traditional hbm market. while hbm remains essential for ai training, wu noted that the rise of ai inference is shifting the bottleneck toward memory bandwidth and power efficiency, as edge devices handle massive user interactions and kv cache workloads, mirror daily reports.
+due to its limited i/o capacity and higher power consumption, hbm is not an ideal fit for power- and latency-sensitive devices such as ai pcs, smartphones, and portable devices, wu added.
+to address this, nanya is developing its customized uwio dram, which leverages wafer-on-wafer (wow) 3d ic stacking technology to directly integrate dram with cpus or asics, mirror daily adds. the architecture reportedly delivers 5–10x higher bandwidth while reducing energy consumption per bit transferred to one-third to one-tenth that of hbm.
+on the other hand, the company is accelerating its capacity expansion with a new wafer fab in taishan, northern taiwan, where total investment is expected to reach nt$500 billion (us$17 billion), according to mirror daily. the facility will reportedly introduce euv lithography, with next year’s capital expenditure expected to surpass nt$200 billion. set to start production ramp-up early next year, the new fab is expected to help nanya narrow the technology gap with leading global memory makers, the report adds.
+read more
+(photo credit: nanya technology) trendforce google news · hbm 存储 先进封装 晶圆代工 南亚科技 自由时报 镜日报 次苹果 hbm gpu asic 先进封装" data-source="trendforce" data-score="5" data-date="2026-07-23" data-keywords="hbm|gpu|asic|先进封装">
+<td><span class="badge score5">5</span></td>
+<td><a class="news-title" href="2026-07-23/Google_News_·_HBM_南亚科技预测2026年存储市场达8000亿美元_并斥资5000亿台币建新厂.html">南亚科技预测2026年存储市场达8000亿美元 并斥资5000亿台币建新厂</a><div class="summary"><b>AI中文摘要：</b>南亚科技副总经理约瑟夫·吴在自由时报指出，AI推理将推动2026年全球存储（DRAM+NAND）市场规模达8000亿美元，存储占半导体收入比重可能升至近50%。他预计HBM将占DRAM位需求约10%，传统服务器DRAM超过40%，合计超50%且未来将超60%。为满足AI推理对带宽和功耗的需求，南亚科技研发基于晶圆对晶圆（WoW）3D堆叠的定制UWIO DRAM，带宽提升5‑10倍，单位位能耗降至HBM的三分之一至十分之一。同时，公司在台湾台山建设新晶圆厂，总投资约新台币5000亿元（约170亿美元），明年资本支出将超新台币2000亿元，以缩小与全球领先存储厂商的技术差距。</div><div class="summary">发布日期：2026-07-23 ｜ <a href="https://www.trendforce.com/news/2026/07/23/news-nanya-tech-sees-ai-inference-to-push-memory-market-to-record-us800b-nearly-half-of-semiconductor-revenue" target="_blank" rel="noopener noreferrer">原文↗</a></div><div class="hits"><span class="hit">HBM</span><span class="hit">GPU</span><span class="hit">ASIC</span><span class="hit">先进封装</span></div></td>
+<td>TrendForce</td><td>存储 / 先进封装 / 晶圆代工</td><td>南亚科技、自由时报、镜日报、次苹果</td>
+</tr>
+
+<tr class="news-row" data-search="amd用现金50亿美元投资anthropic，替股权争夺ai芯片市场 amd bought into anthropic instead of giving shares away - crn asia amd与anthropic达成合作，amd将向anthropic提供2吉瓦级mi450系列gpu，并承诺最多50亿美元的股权投资，但无附带权证。该协议标志着amd在ai芯片领域的战略转向，从以股权吸引客户转向现金投资。anthropic将在amd helios架构系统中部署芯片，首期交付计划在2027年上半年启动。该交易凸显amd在ai计算领域的市场份额争夺，其数据中心业务同比增长57%，但仍面临nvidia95%的市场主导地位。供应链方面，mi450芯片采用tsmc2nm工艺，封装采用cowos-l技术，依赖韩国sk hynix的hbm4内存，供应链风险集中于台湾生态链。 amd bought into anthropic instead of giving shares away
+two gigawatts of mi450 capacity and up to $5 billion in equity, with no warrants attached. the structure of this deal says more about amd&#39;s position than the headline number does.
+amd has signed its third gigawatt-scale ai customer in nine months. what changed this time is who paid whom. under the partnership announced on wednesday, anthropic will deploy up to 2 gigawatts of amd instinct mi450 series gpus inside amd helios rack-scale systems, with the first gigawatt beginning deployment in the first half of 2027. amd has committed to a strategic equity investment of up to $5 billion in anthropic, released as deployment milestones are met.
+the wall street journal, which reported the agreement before it was confirmed, put the value of the hardware itself in the tens of billions of dollars and said anthropic will buy some of the chips outright for its own data centres while leasing the rest of the capacity.
+set the equity terms against the two deals that came before. when amd landed openai last october and meta in february, it handed each company warrants for up to 160 million shares, exercisable at a cent apiece if purchase and performance targets were hit. between them, those warrants account for roughly a fifth of amd. anthropic received none. amd is putting cash into its customer rather than giving away equity to win the order.
+jefferies analyst blayne curtis, who holds a $615 price target on the stock, said the terms mattered more than the win itself. investors seemed to take the same view. amd climbed around 10% on wednesday, part of a roughly $85 billion gain in market value over two sessions that carried its market capitalisation past $900 billion.
+third in a queue that amd still has to deliver on
+the commitment is real. whether it arrives on schedule is a separate question, and anthropic is not first in line. openai&#39;s initial gigawatt of amd capacity is due in the second half of this year. oracle is scheduled to begin deploying 50,000 mi450 gpus this quarter. microsoft committed on monday to ramping helios on azure. meta&#39;s 6-gigawatt agreement starts with its own gigawatt this year.
+counting anthropic, amd&#39;s announced ai compute commitments now sit at roughly 14 gigawatts, all of it depending on a rack-scale platform that has not yet shipped in volume. the scale of what amd is trying to close is easier to see in the market share numbers. futurum group estimates cited by cnbc put nvidia above 95% of the data centre gpu market, leaving amd with something near 4.5%. amd&#39;s data centre segment turned over $5.78 billion in the first quarter, up 57% year on year, which is strong growth against a base that is still small relative to the ambition. second-quarter results land on august 4.
+the gigawatts get built in asia
+none of this capacity is manufactured in santa clara, and that is where the timeline gets interesting. the mi450 accelerator die is expected to use tsmc&#39;s 2nm-class n2p process, with the epyc &#34;venice&#34; cpus alongside it among the first enterprise processors on tsmc&#39;s 2nm node, according to reporting from commercial times and techpowerup.
+packaging moves to cowos-l, tsmc&#39;s advanced process for bonding memory and logic onto a single module. samsung has reportedly secured a lead supply role for hbm4, the stacked memory that sits alongside the accelerator and largely determines how fast data reaches it. chosun biz puts the mi450 at 432gb per gpu. sk hynix retains the larger share of nvidia&#39;s rubin volumes.
+assembly runs through the same taiwanese base that builds most of the world&#39;s ai infrastructure. amd announced more than $10 billion in taiwan ecosystem investments in may, naming sanmina, wiwynn, wistron and inventec as the odms building helios systems, with substrate and pcb work going to unimicron, nan ya pcb, kinsus and aic.
+that supply base is where the risk concentrates. hbm production at all three major suppliers has been effectively sold out through 2027, and advanced packaging capacity is allocated years in advance. a 2-gigawatt commitment beginning in 2027 is a claim on capacity that is already spoken for several times over.
+what anthropic is actually buying
+the compute is the visible half of the arrangement. the software is the part that matters longer term.
+anthropic already runs amd&#39;s current-generation mi355x gpus, a detail the two companies confirmed publicly for the first time this week. the new agreement adds a multi-year engineering collaboration in which claude will be used to tune workloads for instinct chips and speed up development of rocm, the amd software layer that lets ai researchers actually program the hardware. amd will also adopt claude across its own engineering teams.
+rocm is the reason amd keeps losing frontier customers to nvidia. nvidia&#39;s equivalent, cuda, has had two decades to accumulate tooling, documentation and developer habits, and most ai researchers have never written code for anything else. faster silicon on its own does not close that gap. getting a frontier lab to point its own models at the problem is a cheaper route than hiring for it.
+anthropic now draws on roughly six distinct silicon sources for claude. the company has committed more than $100 billion over ten years to aws for up to 5 gigawatts of trainium capacity, signed a multi-gigawatt agreement with google and broadcom in april, contracted nvidia compute through microsoft azure, and agreed in may to pay spacex $1.25 billion a month through 2029 for the full capacity of its colossus 1 data centre in memphis.
+&#34;running across a diversified range of hardware lets us map the right workloads to the right hardware,&#34; said tom brown, anthropic&#39;s co-founder and chief compute officer. that is a polite way of saying no single supplier gets to set the price.
+in short, amd has spent nine months buying its way into that conversation. this is the first time it did so without handing over a piece of itself. google news google news · cowos 芯片设计 先进封装 云厂商 amd anthropic tsmc samsung sk hynix cowos hbm cowos gpu 先进封装 nvidia tsmc sk hynix micron openai anthropic" data-source="google news" data-score="5" data-date="2026-07-23" data-keywords="hbm|cowos|gpu|先进封装|nvidia|tsmc|sk hynix|micron|openai|anthropic">
+<td><span class="badge score5">5</span></td>
+<td><a class="news-title" href="2026-07-23/Google_News_·_CoWoS_AMD用现金50亿美元投资Anthropic，替股权争夺AI芯片市场.html">AMD用现金50亿美元投资Anthropic，替股权争夺AI芯片市场</a><div class="summary"><b>AI中文摘要：</b>AMD与Anthropic达成合作，AMD将向Anthropic提供2吉瓦级MI450系列GPU，并承诺最多50亿美元的股权投资，但无附带权证。该协议标志着AMD在AI芯片领域的战略转向，从以股权吸引客户转向现金投资。Anthropic将在AMD Helios架构系统中部署芯片，首期交付计划在2027年上半年启动。该交易凸显AMD在AI计算领域的市场份额争夺，其数据中心业务同比增长57%，但仍面临NVIDIA95%的市场主导地位。供应链方面，MI450芯片采用TSMC2nm工艺，封装采用CoWoS-L技术，依赖韩国SK hynix的HBM4内存，供应链风险集中于台湾生态链。</div><div class="summary"><a href="https://www.crnasia.com/news/2026/components-and-peripherals/amd-bought-into-anthropic-instead-of-giving-shares-away" target="_blank" rel="noopener noreferrer">原文↗</a></div><div class="hits"><span class="hit">HBM</span><span class="hit">CoWoS</span><span class="hit">GPU</span><span class="hit">先进封装</span><span class="hit">NVIDIA</span><span class="hit">TSMC</span><span class="hit">SK Hynix</span><span class="hit">Micron</span><span class="hit">OpenAI</span><span class="hit">Anthropic</span></div></td>
+<td>Google News</td><td>芯片设计 / 先进封装 / 云厂商</td><td>AMD、Anthropic、TSMC、Samsung、SK hynix、CoWoS</td>
+</tr>
+
+<tr class="news-row" data-search="华尔街定义“memi”新板块，存储芯片成为ai算力瓶颈及核心资产 wall street coined a new $3 trillion sector called memi and the stocks powering it are already in a bear market - startup fortune 华尔街将存储与半导体结合定义为“memi”新板块，其核心企业micron、sk hynix与samsung市值总和已超3万亿美元。由于gpu算力提升导致“内存墙”问题凸显，高带宽内存（hbm）成为解决带宽瓶颈的关键，目前hbm需求极度旺盛，micron的hbm订单已排至2027-2028年。尽管面临行业周期性波动及产能扩张的担忧，但由于hbm生产高度依赖先进封装（如tsmc的cowos工艺）且产能受限，预计ai基础设施的计算成本在短期内难以大幅下降。 harbor capital named a new de facto sector on its midyear investor call , memory semiconductors , and the three companies at its center, micron, sk hynix, and samsung, are collectively worth more than $3 trillion even as two of them trade well below their recent peaks.
+
+spenser lerner, harbor capital&#39;s head of multi-asset solutions, dropped the term on a july 22 call with investors. memi, a portmanteau of memory and semiconductors, was &#34;very much intentional,&#34; lerner said, because memory has become &#34;the poster boy or poster person of the whole semis universe.&#34; that framing captured something real. the three companies that own the memory market have become the structural choke point in every major ai buildout, and wall street has started treating them as their own asset class rather than a dusty corner of the semiconductor index.
+
+the timing of the label matters. sk hynix, the south korean chipmaker that holds roughly 56% of the high-bandwidth memory market by revenue, listed on the nasdaq on july 10, raising $26.5 billion in what became the largest u.s. listing by a foreign company in history, surpassing alibaba&#39;s $25 billion debut in 2014. the offering was reportedly more than seven times oversubscribed. micron, meanwhile, has crossed $1 trillion in market cap and is up roughly 240% year-to-date. samsung is up 116% on the korea exchange over the same period. three trillion dollars in combined market value, and the sector didn&#39;t even have a name two weeks ago.
+
+the simple story is that gpus got too fast. every frontier model is now bottlenecked not by arithmetic but by memory bandwidth: a chip can multiply faster than dram can deliver the weights it needs to work on. that gap is the &#34;memory wall,&#34; and high-bandwidth memory, or hbm, is the workaround. hbm stacks dram dies vertically and connects them to the gpu through a silicon interposer, achieving bandwidths that conventional dram cannot approach. hbm4, entering mass production this year, hits 2 terabytes per second per stack, double the interface width of its predecessor.
+
+the supply situation is severe. hbm now consumes 23% of all dram wafer starts, according to trendforce, and demand has grown several times over since 2023 while advanced-packaging capacity has not kept pace. micron has sold out its entire hbm allocation through 2026 and has purchase orders stretching to 2027 and 2028. sk hynix is similarly committed. prices reflect it: hbm3e runs about $300 per stack, and hbm4 is pricing closer to $500. if you&#39;re building ai infrastructure right now, you&#39;re paying those numbers, and there&#39;s no line to skip.
+
+lerner noted on the call that korea and taiwan now make up 51% of the emerging-market semiconductor index, meaning a u.s. investor buying a standard em fund is, in large part, buying memi whether they know it or not. among emerging markets, the index has returned 43.51% over the trailing year, and most of that performance traces back to korean memory names. goldman sachs has set a price target of 12,000 for the kospi, a call that is essentially a bet on continued hbm demand.
+
+micron is down 30% from its high. is that the story or the opportunity?
+
+here&#39;s where it gets interesting. micron posted record fiscal third-quarter 2026 revenue of $41.46 billion and guided to roughly $50 billion in the fourth quarter. the stock briefly hit an all-time high of $1,255 on june 25. since then it&#39;s pulled back about 30%. bank of america remains bullish. so does ubs. the bears point to chinese competition, rising production capacity from all three players, and the ordinary cyclicality that has always plagued memory: margins surge, capacity expands, prices fall, and the whole thing repeats.
+
+that cyclicality concern is real and worth taking seriously. memory has wrecked investors before precisely because it looks most attractive at the moment demand peaks and supply is about to catch up. the counterargument is that hbm is structurally different. unlike standard dram, where factories can pivot relatively quickly, hbm requires advanced packaging, specifically tsmc&#39;s cowos process, which has been the actual production bottleneck - not wafer starts in korea. tsmc has tripled its cowos output two consecutive years and is still rationing it. that isn&#39;t a problem that resolves in a quarter.
+
+for founders building ai products, the practical implication is that compute costs aren&#39;t going down fast. the cost of running large models is heavily determined by memory bandwidth, and memory bandwidth is priced by companies that are sold out. plan accordingly. if your product&#39;s unit economics depend on inference getting dramatically cheaper in the next twelve months, memi&#39;s supply picture suggests you should plan for a slower glide path.
+
+for investors, the gap between micron&#39;s fundamentals and its current price is a genuine puzzle. a company guiding to $50 billion in quarterly revenue, trading at roughly 7 times the annualized earnings implied by that guidance, is not obviously expensive. but memory investors have been burned by exactly that logic before, at exactly the moments when demand looked most durable. the honest answer is that memi as a sector label is less than a week old, the underlying dynamics are genuinely structural, and the pullback in micron is either a buying window or a warning. probably worth knowing which one before the name sticks.
+
+also read: tesla scraps its model s and model x lines to bet the company on humanoid robots • amazon fires its agi researchers and bets a billion dollars on deployment instead • ibm stock fell 25% in a single day because ai spending is eating the budgets that used to feed its mainframe empire startup fortune google news · cowos 存储 先进封装 micron sk hynix samsung tsmc hbm cowos gpu 先进封装 tsmc sk hynix micron" data-source="startup fortune" data-score="4" data-date="2026-07-23" data-keywords="hbm|cowos|gpu|先进封装|tsmc|sk hynix|micron">
+<td><span class="badge score4">4</span></td>
+<td><a class="news-title" href="2026-07-23/Google_News_·_CoWoS_华尔街定义“Memi”新板块，存储芯片成为AI算力瓶颈及核心资产.html">华尔街定义“Memi”新板块，存储芯片成为AI算力瓶颈及核心资产</a><div class="summary"><b>AI中文摘要：</b>华尔街将存储与半导体结合定义为“Memi”新板块，其核心企业Micron、SK Hynix与Samsung市值总和已超3万亿美元。由于GPU算力提升导致“内存墙”问题凸显，高带宽内存（HBM）成为解决带宽瓶颈的关键，目前HBM需求极度旺盛，Micron的HBM订单已排至2027-2028年。尽管面临行业周期性波动及产能扩张的担忧，但由于HBM生产高度依赖先进封装（如TSMC的CoWoS工艺）且产能受限，预计AI基础设施的计算成本在短期内难以大幅下降。</div><div class="summary">发布日期：2026-07-23 ｜ <a href="https://startupfortune.com/wall-street-coined-a-new-3-trillion-sector-called-memi-and-the-stocks-powering-it-are-already-in-a-bear-market" target="_blank" rel="noopener noreferrer">原文↗</a></div><div class="hits"><span class="hit">HBM</span><span class="hit">CoWoS</span><span class="hit">GPU</span><span class="hit">先进封装</span><span class="hit">TSMC</span><span class="hit">SK Hynix</span><span class="hit">Micron</span></div></td>
+<td>Startup Fortune</td><td>存储 / 先进封装</td><td>Micron、SK Hynix、Samsung、TSMC</td>
+</tr>
+
+<tr class="news-row" data-search="google ai资本支出带动 光子概念股cohr等上涨 cohr, aaoi, lite, poet: photonic stocks join google capex-fueled ai rally - stocktwits 近期，google因其人工智能业务持续扩大，宣布加大相关资本支出，以支持ai算力基础设施建设。这一消息带动了光通信板块，使得cohr（coherent）、aaoi（applied optoelectronics）、lite（lumentum）和poet（poet technologies）等光子概念股价应声上涨。市场普遍认为，google的ai资本支出增加将提升对光互连、光收发模块等关键光子器件的需求，从而惠及上游光器件供应链。该事件反映出云厂商资本开支对关键材料和器件供需的直接影响，具备一定的产业链传导意义。 google news · ai capex 光通信 云厂商 coherent applied optoelectronics lumentum poet technologies" data-source="google news · ai capex" data-score="4" data-date="2026-07-23" data-keywords="">
+<td><span class="badge score4">4</span></td>
+<td><a class="news-title" href="2026-07-23/Google_News_·_AI_CapEx_Google_AI资本支出带动_光子概念股COHR等上涨.html">Google AI资本支出带动 光子概念股COHR等上涨</a><div class="summary"><b>AI中文摘要：</b>近期，Google因其人工智能业务持续扩大，宣布加大相关资本支出，以支持AI算力基础设施建设。这一消息带动了光通信板块，使得COHR（Coherent）、AAOI（Applied Optoelectronics）、LITE（Lumentum）和POET（POET Technologies）等光子概念股价应声上涨。市场普遍认为，Google的AI资本支出增加将提升对光互连、光收发模块等关键光子器件的需求，从而惠及上游光器件供应链。该事件反映出云厂商资本开支对关键材料和器件供需的直接影响，具备一定的产业链传导意义。</div><div class="summary"><a href="https://stocktwits.com/news-articles/markets/equity/cohr-aaoi-lite-poet-photonic-stocks-join-google-capex-fueled-ai-rally/cZZnO3mR7x5" target="_blank" rel="noopener noreferrer">原文↗</a></div></td>
+<td>Google News · AI CapEx</td><td>光通信 / 云厂商</td><td>Coherent、Applied Optoelectronics、Lumentum、POET Technologies</td>
+</tr>
+
+<tr class="news-row" data-search="中国ai模型追赶全球但算力供应链瓶颈加剧的 china’s ai models are catching up—but its compute gap is getting worse - semivision 文章指出，尽管中国ai模型在性能上通过架构优化、混合专家、量化等手段缩小与全球领先者的差距，但随着模型能力提升和应用场景扩展，对高端gpu、hbm、先进封装、高速网络、数据中心电力和散热等整套算力资源的需求增长速度超过软件效率提升，导致系统性供应链瓶颈。文中提到，受美国出口管制影响，中国难以获得最新一代nvidia hopper和gb系列芯片，现有hopper供应紧张，gb系列更难大规模部署。此外，openrouter数据显示约60%的美国用户token消耗来自中国模型，doordash、airbnb等企业已将其作为低成本替代方案。文章认为，竞争重点正从‘谁能提供最便宜的模型’转向‘谁能获得稳定算力’以及‘如何在硬件约束下最大化有效算力输出’。 orginal article by semivision research [reading time: 13 mins]
+
+china’s artificial-intelligence industry is entering a more difficult phase.
+
+for the past several years, competition has largely been measured through model benchmarks: parameter counts, reasoning performance, context length, training efficiency, and api pricing. chinese developers have demonstrated that architecture optimization, mixture-of-experts models, quantization, distillation, and increasingly efficient training methods can narrow the performance gap with global leaders.
+
+but the next stage of competition will not be decided by models alone.
+
+as models become more capable, more widely used, and increasingly integrated into search, coding, document processing, data analysis, and autonomous-agent workflows, the underlying demand for computing resources is expanding faster than the efficiency gains delivered by software.
+
+the central contradiction facing china’s ai industry is therefore becoming clearer:
+
+model capabilities and user demand are growing rapidly, while the supply of high-end gpus, ai accelerators, hbm, advanced packaging, high-speed networking, and data-center power cannot expand at the same speed.
+
+this is no longer a single-chip shortage. it is a system-wide supply-chain constraint.
+
+the success of models such as kimi k3 may intensify this pressure. lower-cost and higher-efficiency models can rapidly expand market adoption, but broader adoption also produces substantially more inference demand. once ai services move beyond simple question-and-answer interactions, each user may trigger multiple model calls, long-context retrieval, tool usage, memory operations, and multi-step reasoning.
+
+semivision @_@ is a reader-supported publication. to receive new posts and support my work, consider becoming a free or paid subscriber.
+
+the cost of an individual inference may fall, but aggregate token consumption can still rise dramatically.
+
+as a result, competition in china’s ai market is shifting from “who can offer the cheapest model” toward two more difficult questions:
+
+who can secure stable computing resources?
+
+and who can convert constrained hardware into the greatest amount of effective computing output?
+
+china’s recent breakthroughs in large ai models have drawn worldwide attention. the discussion gained even more momentum this morning when “the founders behind china’s four leading ai model companies” began trending on chinese social media. (deepseek, kimi, zhipu, minimax)
+
+their career paths reveal how the role of a technology founder is changing in the ai era. the job is no longer simply about writing the most code or personally solving every technical problem. increasingly, the founder’s real value lies in setting the direction, assembling the right team and building a system in which 10% of their direct execution can unlock the other 90% of the company’s growth.
+
+beyond the ai model itself, people have also begun discussing why yang zhilin turned down an offer from apple after completing his phd in the united states and instead chose to return to china to start a company. the decision reflects a complex combination of personal, professional, and policy considerations.
+
+prominent investor vinod khosla attributed part of the issue to the trump administration’s immigration policies. responding to discussions about the success of kimi k3, he argued: “the bigger issue is that our immigration policies targeting highly skilled talent are driving away exceptional people from other countries.”
+
+people choose where to build their lives and careers for many different reasons. for the united states, however, growing uncertainty surrounding immigration and international academic and professional exchanges could make the country appear less welcoming—and ultimately weaken its long-term competitiveness.
+
+semivision spotted an interesting chart on openrouter that clearly illustrates how the u.s.–china technology rivalry is evolving—from a competition over semiconductor chips to a competition over ai models.
+
+beyond semiconductor materials and equipment, should the u.s. also restrict chinese ai models?
+
+the white house is reportedly examining whether leading chinese ai models have benefited from u.s. large language model technology and is considering sanctions against overseas ai models found to infringe intellectual property. officials are also discussing whether companies using chinese ai models should be required to disclose that fact to their customers.
+
+however, open-weight models present a fundamentally different challenge from semiconductor hardware. once released, they can be freely downloaded, modified, and deployed locally, making them far more difficult to control through tariffs, export restrictions, or outright bans.
+
+the reality is that chinese ai models have already gained significant traction in the u.s. market. on the ai platform openrouter, roughly 60% of the tokens consumed by u.s. users reportedly come from chinese models. companies such as doordash and airbnb have also adopted them as cost-effective alternatives to models from openai and anthropic.
+
+a blanket ban on chinese ai models could therefore create unintended consequences for silicon valley startups, research institutions, and ai infrastructure providers. rather than imposing an outright prohibition, washington is more likely to rely on legal liability, regulatory uncertainty, and reputational pressure to encourage companies to move away from chinese models voluntarily.
+
+china, meanwhile, has positioned universal ai access and open-weight ecosystems as part of its global strategy, arguing that every country should have the freedom to choose its ai technologies without being forced to align with either washington or beijing.
+
+this marks an interesting reversal in the u.s.–china technology competition. the united states originally sought to keep china dependent on nvidia gpus and the broader u.s. technology ecosystem. today, however, china’s combination of low-cost, highly capable ai models is creating a new form of dependence—this time among american enterprises.
+
+for countries that lack the resources to develop frontier ai models on their own, chinese ai offers an attractive combination of affordability and ease of deployment. even if washington increases political and regulatory pressure, it is likely to find it difficult to prevent these models from continuing to spread across global markets.
+
+because of u.s.–china semiconductor export restrictions, china continues to face limited access to nvidia’s latest ai chips. existing hopper-based gpus remain in short supply, while next-generation gb-series platforms and their complete rack-scale systems are even more difficult to obtain in meaningful deployment volumes.
+
+building an ai supercluster requires far more than gpus
+
+gpus are only one part of the equation. a production-scale ai supercluster requires a complete technology stack.
+
+beyond ai accelerators, it also depends on high-bandwidth memory (hbm), advanced packaging, high-speed network interface cards (nics), ethernet or infiniband switches, optical transceivers, server racks, power conversion systems, cooling infrastructure, and a stable, reliable electricity supply.
+
+a bottleneck in any one of these components can delay the deployment of the entire ai cluster.
+
+even when chinese companies succeed in acquiring ai accelerators, there can still be a significant gap between nominal computing capacity and effective computing capacity. real-world performance depends on much more than the number of gpus installed. it is determined by networking efficiency, software compatibility, memory constraints, hardware reliability, cluster scheduling, and workload utilization.
+
+as a result, two ai clusters with the same theoretical teraflops may deliver dramatically different levels of real-world computing performance.
+
+chinese ai developers have become highly skilled at extracting more output from constrained hardware.
+
+low-precision computing, quantization, model sparsity, knowledge distillation, speculative decoding, and optimized inference engines can all improve the number of tokens generated per unit of hardware.
+
+according to huawei, the system is scheduled to reach the market in the fourth quarter of 2026, marking china’s entry into the era of ai clusters built with more than 10,000 accelerator cards. unsurprisingly, it became one of the biggest attractions at this year’s exhibition.
+
+the upgraded supernode architecture stands out for three reasons.
+
+first, huawei has found a way to link as many as 1,024 ai chips into a single system. together, they can deliver 1 exaflops of fp8 performance and 2 exaflops at fp4, making it one of the largest supernodes introduced by the industry.
+
+first, huawei has found a way to link as many as 1,024 ai chips into a single system. together, they can deliver 1 exaflops of fp8 performance and 2 exaflops at fp4, making it one of the largest supernodes introduced by the industry.
+
+second, all 1,024 chips can access a shared memory pool of up to 256 tb. rather than treating each accelerator as a largely isolated resource, huawei is trying to make the entire cluster operate more like one enormous computing system.
+
+second, all 1,024 chips can access a shared memory pool of up to 256 tb. rather than treating each accelerator as a largely isolated resource, huawei is trying to make the entire cluster operate more like one enormous computing system.
+
+the third advantage is communication speed. huawei says the interconnect can move data at terabyte-per-second speeds, while reducing round-trip latency to just three microseconds. at that level, information can move between chips almost instantaneously, addressing one of the biggest problems in large ai clusters: the time accelerators spend waiting for one another instead of doing useful work.
+
+the third advantage is communication speed. huawei says the interconnect can move data at terabyte-per-second speeds, while reducing round-trip latency to just three microseconds. at that level, information can move between chips almost instantaneously, addressing one of the biggest problems in large ai clusters: the time accelerators spend waiting for one another instead of doing useful work.
+
+these technological advances are strategically important. they extend the useful life of existing ai accelerators and reduce dependence on the latest generation of gpus.
+
+however, higher efficiency does not necessarily translate into lower infrastructure demand.
+
+as ai inference becomes cheaper, more users adopt ai services. existing users also consume more compute and run increasingly complex workloads. an ai agent, for example, may make dozens of model calls to complete a workflow that previously required only a single prompt.
+
+this closely mirrors the idea jensen huang has repeatedly emphasized: when the cost of computing falls, demand rises even faster. lower prices unlock entirely new use cases rather than simply reducing spending. ai inference follows the same economic principle. as token costs decline, developers and enterprises become willing to build more ai-native applications and call models far more frequently.
+
+token costs are still substantial today. semianalysis dylan patel previously disclosed that it spent approximately us$7 million on tokens in 2025, and that expenditure continues to grow rapidly. as inference becomes more affordable, overall token consumption is likely to increase even faster rather than decline.
+
+this is a classic example of the compute rebound effect: reducing the cost of each inference ultimately stimulates even greater demand for total computing capacity.
+
+this is why ai inference accelerators have become one of the industry’s most closely watched markets. unlike general-purpose training gpus, inference chips can be optimized for specific models, data formats, operators, and memory-access patterns.
+
+it also explains why nearly every major cloud service provider and ai leader—including openai, spacex, and anthropic—is investing in custom ai inference silicon. designing chips specifically for inference offers greater control over cost, performance, power efficiency, and infrastructure optimization than relying solely on merchant gpus.
+
+a successful inference processor does not need to replicate every capability of a cutting-edge training gpu. instead, it must strike the optimal balance between compute performance, memory capacity, software compatibility, and energy efficiency for its target workloads.
+
+chinese ai companies are continuing to expand their use of computing resources in the middle east, southeast asia, south korea, and other overseas markets. advanced chips are generally easier to obtain outside china, which is one of the main reasons many chinese ai companies have established offshore entities and overseas operations.
+
+these regions may offer access to more advanced gpus, reliable electricity, available land, capital, and newly constructed data-center capacity.
+
+for chinese model developers, overseas infrastructure can shorten computing-resource procurement cycles and reduce the substantial capital expenditure required to build large domestic computing clusters.
+
+where data-compliance requirements and network latency allow, inference workloads can be distributed across overseas facilities. model-training teams may also establish offshore operating environments that include data, model weights, computing infrastructure, and engineering personnel.
+
+however, this strategy is facing growing regulatory and operational risks.
+
+export controls are gradually expanding beyond the direct sale of physical chips to cover resale, transshipment, end use, and access to cloud-computing resources.
+
+data-center operators may increasingly be required to verify the identities of their customers, their ultimate beneficial owners, and the final purpose of their computing workloads.
+
+recently, a group of servers equipped with nvidia’s advanced ai chips was allegedly exported illegally to china and other destinations. the case involved approximately us$25 million, and the individuals involved were arrested by taiwanese prosecutors, investigators, and the coast guard administration. the case illustrates how us chip restrictions have expanded significantly and how scrutiny of advanced-chip exports has become exceptionally strict.
+
+therefore, obtaining computing resources through an overseas legal entity may not provide durable protection if the underlying customer or ultimate end use remains subject to restrictions.
+
+from an operational perspective, overseas computing resources are also difficult to integrate fully with infrastructure located inside china.
+
+cross-border network latency, data-security regulations, model-weight protection, engineering collaboration, and regulatory compliance all add to operating costs.
+
+overseas computing capacity will therefore remain an important supplementary resource, but it is unlikely to become a complete or sustainable long-term substitute for domestic computing infrastructure.
+
+china has demonstrated that innovations in model architecture, improvements in engineering efficiency, and software optimization can partially offset the disadvantages created by hardware restrictions.
+
+however, software efficiency cannot fully substitute for physical infrastructure.
+
+the more successful chinese ai models become, the more urgently they will require ai accelerators, memory, advanced packaging, networking equipment, electricity, cooling systems, and data-center capacity.
+
+to address these challenges, china will expand the use of huawei ascend and other domestic chips, develop inference-specific accelerators, build more supernodes, lease overseas computing capacity, expand domestic semiconductor fabs, localize hbm and advanced packaging, and improve software for heterogeneous computing.
+
+these efforts will reduce china’s dependence on individual foreign suppliers, but they will not eliminate the technological and supply-capability gap in the short term.
+
+advanced-process capacity, hbm yields, packaging integration, high-speed interconnects, and software ecosystems are all capabilities that require years of cumulative development. these challenges cannot be resolved through a single product launch or the construction of one new fab.
+
+semivision believes that china’s computing shortage will remain an important driver of semiconductor and power-infrastructure investment. one relevant example is china’s national “eastern data, western computing” initiative, a large-scale infrastructure project designed primarily to address the country’s geographic mismatch in resources.
+
+china’s data demand is concentrated mainly in the eastern regions, where land, water, and electricity supplies are increasingly constrained. to address this imbalance, china has established eight national computing-hub nodes covering the beijing–tianjin–hebei region, the yangtze river delta, the guangdong–hong kong–macao greater bay area, the chengdu–chongqing region, inner mongolia, guizhou, gansu, and ningxia.
+
+multiple national data-center clusters have also been designated within these hubs to strengthen coordination between the eastern and western regions.
+
+the united states continues to lead in high-end ai accelerators, ai software, and system architecture. taiwan remains central to advanced wafer manufacturing, advanced packaging, and server production. south korea retains its advantages in hbm and advanced memory, while japan continues to play an indispensable role in semiconductor materials, equipment, and critical components.
+
+china, meanwhile, will leverage its enormous domestic market, policy support, manufacturing investment, and system-level innovation to build a more autonomous and controllable domestic computing ecosystem. china is particularly effective at bringing ai applications to market rapidly, with bytedance’s doubao serving as a strong example.
+
+the global supply chain will not fully decouple, but access to the highest-performance products will become more tightly controlled. at the same time, regional manufacturing and second-source strategies will become increasingly important.
+
+semivision believes that ai competition is no longer determined solely by model intelligence or the specifications of an individual chip.
+
+the real competitive advantage increasingly lies in whether an industry can coordinate chip design, wafer manufacturing, memory, advanced packaging, networking, power, cooling, software, and data centers—and integrate these elements into a complete system that can scale efficiently.
+
+the global ai-computing gap is not simply the absence of a particular flagship chip.
+
+the real constraint lies in the ability of the entire supply chain—and the power infrastructure supporting it—to deliver sufficient computing capacity at the required speed, efficiency, yield, and scale.
+
+this gap will be difficult to close in the short term.
+
+over the next several years, however, it will remain one of the most important drivers of global semiconductor and infrastructure investment.
+
+semivision @_@ is a reader-supported publication. to receive new posts and support my work, consider becoming a free or paid subscriber. semivision @_@ google news · hbm 存储 先进封装 光通信 服务器/系统 电力/散热 芯片设计 doordash airbnb openai anthropic nvidia apple deepseek kimi zhipu minimax openrouter semivision hbm gpu 先进封装 nvidia openai anthropic" data-source="semivision @_@" data-score="4" data-date="2026-07-23" data-keywords="hbm|gpu|先进封装|nvidia|openai|anthropic">
+<td><span class="badge score4">4</span></td>
+<td><a class="news-title" href="2026-07-23/Google_News_·_HBM_中国AI模型追赶全球但算力供应链瓶颈加剧的.html">中国AI模型追赶全球但算力供应链瓶颈加剧的</a><div class="summary"><b>AI中文摘要：</b>文章指出，尽管中国AI模型在性能上通过架构优化、混合专家、量化等手段缩小与全球领先者的差距，但随着模型能力提升和应用场景扩展，对高端GPU、HBM、先进封装、高速网络、数据中心电力和散热等整套算力资源的需求增长速度超过软件效率提升，导致系统性供应链瓶颈。文中提到，受美国出口管制影响，中国难以获得最新一代NVIDIA Hopper和GB系列芯片，现有Hopper供应紧张，GB系列更难大规模部署。此外，OpenRouter数据显示约60%的美国用户token消耗来自中国模型，DoorDash、Airbnb等企业已将其作为低成本替代方案。文章认为，竞争重点正从‘谁能提供最便宜的模型’转向‘谁能获得稳定算力’以及‘如何在硬件约束下最大化有效算力输出’。</div><div class="summary">发布日期：2026-07-23 ｜ <a href="https://tspasemiconductor.substack.com/p/chinas-ai-models-are-catching-upbut" target="_blank" rel="noopener noreferrer">原文↗</a></div><div class="hits"><span class="hit">HBM</span><span class="hit">GPU</span><span class="hit">先进封装</span><span class="hit">NVIDIA</span><span class="hit">OpenAI</span><span class="hit">Anthropic</span></div></td>
+<td>SEMIVISION @_@</td><td>存储 / 先进封装 / 光通信 / 服务器/系统 / 电力/散热 / 芯片设计</td><td>DoorDash、Airbnb、OpenAI、Anthropic、NVIDIA、Apple、DeepSeek、Kimi、Zhipu、Minimax、OpenRouter、Semivision</td>
+</tr>
+
+<tr class="news-row" data-search="黄仁勋接受axios采访，表达对人工智能产业发展的乐观态度 axios interview: jensen huang is ai&#39;s anti-doom evangelist - axios 在axios的采访中，英伟达首席执行官黄仁勋对人工智能的发展前景表达了积极看法，被视为ai领域的“反末日传教士”。此次访谈重点在于黄仁勋对ai技术演进的乐观预期，而非对技术风险的担忧。作为全球领先的芯片设计公司，英伟达的立场反映了当前ai产业核心驱动者对技术落地与市场扩张的信心，对于评估ai产业链整体发展趋势及算力需求预期具有参考意义。 google news · 关键人物 芯片设计 英伟达" data-source="google news · 关键人物" data-score="3" data-date="2026-07-23" data-keywords="">
+<td><span class="badge score3">3</span></td>
+<td><a class="news-title" href="2026-07-23/Google_News_·_关键人物_黄仁勋接受Axios采访，表达对人工智能产业发展的乐观态度.html">黄仁勋接受Axios采访，表达对人工智能产业发展的乐观态度</a><div class="summary"><b>AI中文摘要：</b>在Axios的采访中，英伟达首席执行官黄仁勋对人工智能的发展前景表达了积极看法，被视为AI领域的“反末日传教士”。此次访谈重点在于黄仁勋对AI技术演进的乐观预期，而非对技术风险的担忧。作为全球领先的芯片设计公司，英伟达的立场反映了当前AI产业核心驱动者对技术落地与市场扩张的信心，对于评估AI产业链整体发展趋势及算力需求预期具有参考意义。</div><div class="summary"><a href="https://www.axios.com/2026/07/23/axios-interview-jensen-huang-is-ais-anti-doom-evangelist" target="_blank" rel="noopener noreferrer">原文↗</a></div></td>
+<td>Google News · 关键人物</td><td>芯片设计</td><td>英伟达</td>
+</tr>
+
+<tr class="news-row" data-search="马斯克用grok ai改编《奥德赛》引发争议 colman domingo responds to elon musk planning a &#39;historically accurate&#39; ai &#39;odyssey&#39; - mashable elon musk计划用其grok ai开发《奥德赛》的ai版本，colman domingo在jimmy kimmel live!节目中对此进行了批评。domingo指出musk对《奥德赛》的‘历史准确性’定义存在争议，认为其动机源于对多样性选角的不满，并质疑该项目的合理性。事件凸显ai技术在娱乐内容创作中的应用争议，但未涉及具体产业链数据或技术细节。 in case you missed it, elon musk wants to make his own version of christopher nolan&#39;s the odyssey using grok — and jimmy kimmel live! guest host colman domingo has some thoughts.
+&#34;now elon musk is planning to create what he calls a &#39;historically accurate&#39; version of the odyssey, using his grok ai,&#34; domingo says in the clip above. &#34;and by &#39;historically accurate&#39;, he means whiter than christmas at cracker barrel. of course this is all because elon and his musketeers are upset over the diversity casting of the odyssey. and i don&#39;t wanna get technical here, but you can&#39;t make a historically accurate version of something that is totally made the f*** up.
+&#34;i mean, the odyssey is fiction. you know, like the hunger games, or the president&#39;s cognitive exams. i mean come on, doesn&#39;t elon musk have better things to do? wasn&#39;t this bitch supposed to be on mars by now?&#34;
+want more of the best of late night? sign up for mashable&#39;s top stories newsletter.
+topics jimmy kimmel live mashable google news · 关键人物 大模型/应用层" data-source="mashable" data-score="3" data-date="2026-07-23" data-keywords="">
+<td><span class="badge score3">3</span></td>
+<td><a class="news-title" href="2026-07-23/Google_News_·_关键人物_马斯克用Grok_AI改编《奥德赛》引发争议.html">马斯克用Grok AI改编《奥德赛》引发争议</a><div class="summary"><b>AI中文摘要：</b>Elon Musk计划用其Grok AI开发《奥德赛》的AI版本，Colman Domingo在Jimmy Kimmel Live!节目中对此进行了批评。Domingo指出Musk对《奥德赛》的‘历史准确性’定义存在争议，认为其动机源于对多样性选角的不满，并质疑该项目的合理性。事件凸显AI技术在娱乐内容创作中的应用争议，但未涉及具体产业链数据或技术细节。</div><div class="summary">发布日期：2026-07-23 ｜ <a href="https://mashable.com/entertainment/elon-musk-ai-odyssey-colman-domingo-kimmel" target="_blank" rel="noopener noreferrer">原文↗</a></div></td>
+<td>Mashable</td><td>大模型/应用层</td><td></td>
+</tr>
+
+<tr class="news-row" data-search="nvidia为美国海军研究生院部署dgx gb300超级计算机，赋能ai科研应用 nvidia ai supercomputer comes online at naval postgraduate school nvidia首席执行官黄仁勋出席美国海军研究生院（nps）活动，宣布正式上线基于dgx gb300系统的ai超级计算机。该系统配备nvidia mission control软件，为校内1500多名学生及600名教职员工提供大规模ai计算能力，支持模型训练与推理，应用领域涵盖天气预测、网络安全及灾害韧性规划等。通过与ddn、vast data及vertiv等合作伙伴协作，该系统为nps提供了高性能数据基础设施、统一数据平台及配套的机架、冷却与电力基础设施，旨在通过先进算力支持海洋建模、数字孪生及自主系统等前沿研究。 nvidia founder and ceo jensen huang today visited the naval postgraduate school in monterey, california, to commission an nvidia dgx gb300 system — bringing one of the world’s most powerful ai platforms fully online for the students, researchers and faculty at the u.s. military’s flagship graduate university.
+“our nation depends on our men and women who fight on the front lines. nothing is more valuable to you than information and insight, and information and insight in a timely way, and to understand its impact and consequence,” huang said at the event. “i can’t imagine anything more important.”
+the dgx gb300 supercomputer with nvidia mission control software gives nps’s more than 1,500 in-resident students and 600 faculty on-premises access to large-scale ai computing, including model training and inference capability for applications spanning weather prediction, cybersecurity, and disaster resilience and response planning.
+the commissioning, which took place during the school’s three-day converge @ nps event, marks the latest chapter in an ongoing collaboration to develop ai-based technologies at nps for education and real-world applications.
+it’s built based on an nvidia ai technology center on the monterey campus — a dedicated hub for ai research and graduate instruction, now anchored by the dgx gb300.
+“as we modernize our technology, we must also modernize how we educate our leaders,” said admiral samuel paparo, commander of the u.s. pacific command. “access to advanced computing capability means nps students and faculty understand the opportunities and responsibilities that come with these technologies.”
+training leaders to build with ai
+nps educates active-duty officers and international partners across disciplines — from space operations to ocean science — awarding graduate degrees while centering each program on applied research with direct relevance to real-world problems.
+“leadership is about being in service of something else. you’re in service of your team. you’re in service of your country. you’re in service of your mission,” huang said to attendees. “and all of this technology is just tools to help you.”
+the dgx gb300 gives those programs new technical depth: the ability to train foundation models in house, run high-fidelity simulations at scale and develop ai tools with immediate applicability.
+huang told attendees that even if they aren’t experts in computer science, today’s computers running ai make it easy.
+“the most important advice that i would give to someone is to engage the technology,” huang said. “it’s not as hard as you think it is, and the reason for that is because, on first principles, technology is supposed to get smarter and smarter over time.”
+nvidia has also expanded the collaboration through its deep learning institute, putting instructor toolkits in the hands of nps faculty so ai is woven through graduate curricula across departments.
+“many of you will command in ai-enabled environments. information will move at lightning speeds, compressing response times,” paparo said. “our advantage will come from leaders, like you, who can use the technology to see, understand, decide and act faster while exercising the judgment, experience and leadership that machines cannot provide. that education is happening here at nps.”
+from ocean models to digital twins
+nps runs a regular cadence of hackathons that have produced advances in autonomy, ocean research and operations planning — applied work that demands serious computing to scale.
+researchers are using ai to model sea conditions, predict atmospheric changes and build digital twins of complex environments — work that feeds directly into the scientific domains where nps has deep expertise.
+the dgx gb300 will now power these workloads on campus.
+through the school’s partnership with mitre, a nonprofit organization, nps has developed a framework built on nvidia omniverse libraries that provides high-fidelity digital twin environments for simulating real-world navigation and decision-making under uncertain conditions.
+to learn more, watch nps and nvidia researchers present on ai modeling and simulation at nvidia gtc washington, d.c.
+nvidia partner ecosystem brings ai infrastructure to life
+the dgx gb300 at nps didn’t come together in isolation. ddn, vast and vertiv joined the effort as hardware and systems integration partners.
+ddn contributed high-performance data infrastructure to help researchers efficiently access, manage, protect and scale data for demanding ai workloads.
+vast data provided a unified data platform to enable secure data access and management across edge, core and cloud environments.
+vertiv provided the racks, cooling and power infrastructure needed to bring the system online, as well as installation sequencing, testing and commissioning support, and fluid management and monitoring.
+learn more about nvidia’s collaboration with nps and explore the nvidia dgx gb300. nvidia blog nvidia newsroom 服务器/系统 云厂商 nvidia ddn vast data vertiv nvidia" data-source="nvidia blog" data-score="3" data-date="2026-07-23" data-keywords="nvidia">
+<td><span class="badge score3">3</span></td>
+<td><a class="news-title" href="2026-07-23/NVIDIA_Newsroom_NVIDIA为美国海军研究生院部署DGX_GB300超级计算机，赋能AI科研应用.html">NVIDIA为美国海军研究生院部署DGX GB300超级计算机，赋能AI科研应用</a><div class="summary"><b>AI中文摘要：</b>NVIDIA首席执行官黄仁勋出席美国海军研究生院（NPS）活动，宣布正式上线基于DGX GB300系统的AI超级计算机。该系统配备NVIDIA Mission Control软件，为校内1500多名学生及600名教职员工提供大规模AI计算能力，支持模型训练与推理，应用领域涵盖天气预测、网络安全及灾害韧性规划等。通过与DDN、VAST Data及Vertiv等合作伙伴协作，该系统为NPS提供了高性能数据基础设施、统一数据平台及配套的机架、冷却与电力基础设施，旨在通过先进算力支持海洋建模、数字孪生及自主系统等前沿研究。</div><div class="summary">发布日期：2026-07-23 ｜ <a href="https://blogs.nvidia.com/blog/naval-postgraduate-school-dgx-ai-supercomputer" target="_blank" rel="noopener noreferrer">原文↗</a></div><div class="hits"><span class="hit">NVIDIA</span></div></td>
+<td>NVIDIA Blog</td><td>服务器/系统 / 云厂商</td><td>NVIDIA、DDN、VAST Data、Vertiv</td>
+</tr>
+
+<tr class="news-row" data-search="三星hbm研发负责人荣获韩国工程师奖，行业认可 samsung hbm development lead wins korea engineer award - 매일경제 三星电子的hbm（高带宽内存）研发负责人近日荣获韩国工程师奖，表彰其在高性能内存技术研发方面的卓越贡献。hbm技术是ai、数据中心和高性能计算领域的关键组件，三星在该领域的持续创新巩固了其在全球内存市场的领先地位。此奖项不仅提升了三星在韩国乃至全球技术社区的声誉，也为其在先进封装和芯片设计方面的研发投入提供了正面信号。三星hbm技术已应用于最新的gpu和ai加速器，进一步提升了数据吞吐量和能效比。该奖项也凸显了韩国在半导体研发领域的国际影响力，并鼓励更多企业关注高带宽内存技术的发展。 samsung hbm development lead wins korea engineer award
+
+samsung hbm development lead wins korea engineer award
+
+this article has been translated by griplabs mingo ai.
+
+1 comedian kwak bum confessed that he had bought samsung electronics shares when they were in the 60,0.. 5 hours ago
+
+comedian kwak bum confessed that he had bought samsung electronics shares when they were in the 60,0..
+
+2 former national team goalkeeper kim young-kwang, who drew attention for saying &#34;hong myung-bo, leave.. 11 hours ago
+
+former national team goalkeeper kim young-kwang, who drew attention for saying &#34;hong myung-bo, leave..
+
+3 while sk group chairman chey tae-won and art center director noh so-young&#39;s reversal of the property.. 3 hours ago
+
+while sk group chairman chey tae-won and art center director noh so-young&#39;s reversal of the property..
+
+4 the savings banking sector is rapidly raising deposit rates to prevent customers from leaving. howev.. 8 hours ago
+
+the savings banking sector is rapidly raising deposit rates to prevent customers from leaving. howev..
+
+5 president lee jae myung reaffirmed the need to strengthen the holding tax in relation to the real es.. 5 hours ago
+
+president lee jae myung reaffirmed the need to strengthen the holding tax in relation to the real es..
+
+6 on the 23rd, president lee jae myung emphasized the importance of reaching a social consensus on the.. 8 hours ago
+
+on the 23rd, president lee jae myung emphasized the importance of reaching a social consensus on the..
+
+7 chef yeo kyung-ok, known as the &#34;no. 1 real investment contest,&#34; drew attention by revealing sk hyni.. 8 hours ago
+
+chef yeo kyung-ok, known as the &#34;no. 1 real investment contest,&#34; drew attention by revealing sk hyni..
+
+8 netflix&#39;s occult historical drama &#34;the haunted palace&#34; is continuing its box-office momentum beyond .. 2026.07.21 14:05
+
+netflix&#39;s occult historical drama &#34;the haunted palace&#34; is continuing its box-office momentum beyond ..
+
+9 in the first half of this year, profit dividends paid to fund investors increased by more than 70% f.. 7 hours ago
+
+in the first half of this year, profit dividends paid to fund investors increased by more than 70% f..
+
+10 five days after the fire broke out at coupang 32 logistics center in incheon, another coupang logist.. 9 hours ago
+
+five days after the fire broke out at coupang 32 logistics center in incheon, another coupang logist..
+
+actor kim hye-soo showed off her dazzling beauty.on the 21st, kim hye-soo posted several photos on i..
+
+winter of the group aespa has transformed into a bicycle goddess.on the 21st, winter posted several ..
+
+photo | arena homme plus group tomorrow x together&#39;s taehyun revealed the behind-the-scenes story of..
+
+actor kim yoo-jung has made a bold transformation with blonde hair.according to her agency awesome e..
+
+minami of the group rescene attended the opening ceremony of the &#34;character licensing fair • board g.. 매일경제 google news · hbm 芯片设计 存储 先进封装 三星电子 hbm gpu 先进封装" data-source="매일경제" data-score="2" data-date="2026-07-23" data-keywords="hbm|gpu|先进封装">
+<td><span class="badge score2">2</span></td>
+<td><a class="news-title" href="2026-07-23/Google_News_·_HBM_三星HBM研发负责人荣获韩国工程师奖，行业认可.html">三星HBM研发负责人荣获韩国工程师奖，行业认可</a><div class="summary"><b>AI中文摘要：</b>三星电子的HBM（高带宽内存）研发负责人近日荣获韩国工程师奖，表彰其在高性能内存技术研发方面的卓越贡献。HBM技术是AI、数据中心和高性能计算领域的关键组件，三星在该领域的持续创新巩固了其在全球内存市场的领先地位。此奖项不仅提升了三星在韩国乃至全球技术社区的声誉，也为其在先进封装和芯片设计方面的研发投入提供了正面信号。三星HBM技术已应用于最新的GPU和AI加速器，进一步提升了数据吞吐量和能效比。该奖项也凸显了韩国在半导体研发领域的国际影响力，并鼓励更多企业关注高带宽内存技术的发展。</div><div class="summary">发布日期：2026-07-23 ｜ <a href="https://www.mk.co.kr/en/business/12105655" target="_blank" rel="noopener noreferrer">原文↗</a></div><div class="hits"><span class="hit">HBM</span><span class="hit">GPU</span><span class="hit">先进封装</span></div></td>
+<td>매일경제</td><td>芯片设计 / 存储 / 先进封装</td><td>三星电子</td>
+</tr>
+
+<tr class="news-row" data-search="马斯克是否值得担忧？《经济学人》探讨 should you be afraid of elon musk? - the economist 《经济学人》通过分析马斯克在spacex、tesla等领域的决策，探讨其对科技产业的潜在影响与风险，但未提供具体数据或产业链变化细节。 google news · 关键人物 大模型/应用层" data-source="google news · 关键人物" data-score="2" data-date="2026-07-23" data-keywords="">
+<td><span class="badge score2">2</span></td>
+<td><a class="news-title" href="2026-07-23/Google_News_·_关键人物_马斯克是否值得担忧？《经济学人》探讨.html">马斯克是否值得担忧？《经济学人》探讨</a><div class="summary"><b>AI中文摘要：</b>《经济学人》通过分析马斯克在SpaceX、Tesla等领域的决策，探讨其对科技产业的潜在影响与风险，但未提供具体数据或产业链变化细节。</div><div class="summary"><a href="https://www.economist.com/leaders/2026/07/23/should-you-be-afraid-of-elon-musk" target="_blank" rel="noopener noreferrer">原文↗</a></div></td>
+<td>Google News · 关键人物</td><td>大模型/应用层</td><td></td>
+</tr>
+
+<tr class="news-row" data-search="jensen huang&#39;s $75m gift to vanderbilt argues art decides what technology is for - fortune jensen huang&#39;s $75m gift to vanderbilt argues art decides what technology is for - fortune jensen huang has been on a bit of a philanthropic streak, having donated one of his iconic leather jackets to raise nearly $1 million for the edge institute, a nonprofit that brings together people working in tech, science, culture, and society to live together in pop-up villages and work on experiments. now the nvidia ceo and his wife, lori, are making a somewhat unexpected tu…… jensen huang has been on a bit of a philanthropic streak, having donated one of his iconic leather jackets to raise nearly $1 million for the edge institute, a nonprofit that brings together people working in tech, science, culture, and society to live together in pop-up villages and work on experiments.
+
+now the nvidia ceo and his wife, lori, are making a somewhat unexpected turn, donating $75 million to vanderbilt university for its art, architecture, and design san francisco campus. it might seem odd for one of the world’s most prominent technology leaders to donate to an art school, but the huangs have interesting reasoning.
+
+“technology expands what we can build. art and design determine why we build it,” huang said in a statement. “together they shape civilization.”
+
+pending approval, the gift will establish the jen-hsun and lori huang college of art, architecture and design, which is “envisioned as a hub” for creatives, according to vanderbilt. the goal is to establish a school focused on advanced tech breakthroughs, art and architecture, developing technical and visual mastery through studio practice and design labs, and also to help students build both business and tech fluency. the gift has already spurred more than $25 million in additional donations, for a total investment topping $100 million so far.
+
+with that context, it makes a little more sense why huang, ceo of a $5 trillion ai chips company would be invested in the future of art and tech convergence. and it isn’t his first move here. the san francisco campus is taking over the site of the california college of the arts, the 119-year-old institution that will graduate its final class in 2027 after struggling with falling enrollment and a roughly $20 million deficit . huang had backed cca before its collapse, according to the san francisco standard . his combined giving to cca and vanderbilt now approaches $97.5 million, according to the standard , making the vanderbilt gift his largest ever to a university, topping the more than $50 million he has given his alma mater, oregon state.
+
+san francisco is also the logical home for the school, as opposed to nashville, where its flagship university sits, because it puts students at the epicenter of new technology development.
+
+“this college, together with additional academic programming under development, will prepare creative leaders to shape culture, industries and communities in san francisco’s thriving economy, nationally and around the world,” chancellor daniel diermeier said in a statement.
+
+vanderbilt is also having a major spotlight moment. the gift is the latest step in an aggressive national expansion that has the 153-year-old university opening a new york city campus this fall, planning a graduate campus in west palm beach , and building a quantum-computing institute in chattanooga . this diverges from other higher education institutions that are cost-cutting.
+
+“i think vanderbilt sees this as its moment,” brendan cantwell, a professor of educational administration at michigan state university, told the chronicle of higher education . “there’s a constant pressure at the top of the institutional hierarchy to continue to differentiate yourself and to fight against the gravity regressing you to the mean.”
+
+to be sure, not everyone is celebrating. the takeover means cca’s current faculty and staff aren’t guaranteed positions at vanderbilt, and continuing students aren’t guaranteed admission, local npr station kqed reported .
+
+while diermeier told cbs news there would be “an opportunity for students who may want to transfer to vanderbilt,” he said they’re “not absorbing cca in any way.”
+
+vanderbilt has pledged to preserve cca’s legacy through a “cca institute” within the new college, keeping its wattis institute gallery running and managing the school’s archives. still, for a city that has watched its arts scene contract—cca is the last remaining private art and design school in the bay area—the deal reads to some as another loss.
+
+axios framed the deal as a “huge blow to an arts community that continues to face funding cuts and displacement due to the ai boom.” that’s the same boom that made huang rich. fortune google news · 关键人物 大模型/应用层 nvidia anthropic nvidia anthropic" data-source="fortune" data-score="2" data-date="2026-07-23" data-keywords="nvidia|anthropic">
+<td><span class="badge score2">2</span></td>
+<td><a class="news-title" href="2026-07-23/Google_News_·_关键人物_Jensen_Huang&#39;s_$75M_gift_to_Vanderbilt_argues_art_decides_what_technolo.html">Jensen Huang&#39;s $75M gift to Vanderbilt argues art decides what technology is for - Fortune</a><div class="summary"><b>原始摘要/规则回退：</b>Jensen Huang has been on a bit of a philanthropic streak, having donated one of his iconic leather jackets to raise nearly $1 million for the Edge Institute, a nonprofit that brings together people working in tech, science, culture, and society to live together in pop-up villages and work on experiments. Now the Nvidia CEO and his wife, Lori, are making a somewhat unexpected tu……</div><div class="summary">发布日期：2026-07-23 ｜ <a href="https://fortune.com/2026/07/23/why-did-jensen-huang-donate-75-million-to-art-school-vanderbilt-university-san-francisco" target="_blank" rel="noopener noreferrer">原文↗</a></div><div class="hits"><span class="hit">NVIDIA</span><span class="hit">Anthropic</span></div></td>
+<td>Fortune</td><td>大模型/应用层</td><td>NVIDIA、Anthropic</td>
+</tr>
+
+</tbody></table></div>
+</section>
+
+<section class="date-group" data-date="2026-07-22">
+<h2>2026-07-22（<span class="visible-count">11</span>篇）</h2>
+<div class="table-wrap"><table><thead><tr><th class="score-col">重要性</th><th>标题与摘要</th><th class="source-col">信源</th><th class="chain-col">产业链</th><th class="company-col">公司</th></tr></thead><tbody>
+
+<tr class="news-row" data-search="google increases 2026 capex to $195-205bn as it accelerates ai data center buildout - data center dynamics google increases 2026 capex to $195-205bn as it accelerates ai data center buildout - data center dynamics google&#39;s parent company, alphabet, has increased its expected annual capital expenditure by $15 billion. the company said it now expects to spend between $195 and $205bn, up from its last-quarter prediction of $180-190bn. the company&#39;s capex hit $91.45bn last year, up from $52.5bn the year before. &#34;we have increased our capacity quite significantly over the past three years. th…… google&#39;s parent company, alphabet, has increased its expected annual capital expenditure by $15 billion.
+the company said it now expects to spend between $195 and $205bn, up from its last-quarter prediction of $180-190bn. the company&#39;s capex hit $91.45bn last year, up from $52.5bn the year before.
+&#34;we have increased our capacity quite significantly over the past three years. the demand still outpaces that investment,&#34; cfo anat ashkenazi said on an earnings call.
+the company reported 2026 second-quarter earnings of $119.8 billion, up 24 percent over the prior quarter. google cloud reported $24.8bn in revenue, a new record for the cloud division and up 82 percent over last year.
+google said that it had also begun to recognize revenue from standalone sales of its ai chip family, the tpu.
+despite the revenue growth, shares in alphabet fell three percent in after-hours trading due to concerns over the increasing costs of ai data center development. google news google news · ai capex 云厂商 google" data-source="google news" data-score="5" data-date="2026-07-23" data-keywords="">
+<td><span class="badge score5">5</span></td>
+<td><a class="news-title" href="2026-07-22/Google_News_·_AI_CapEx_Google_increases_2026_capex_to_$195-205bn_as_it_accelerates_AI_data.html">Google increases 2026 capex to $195-205bn as it accelerates AI data center buildout - Data Center Dynamics</a><div class="summary"><b>原始摘要/规则回退：</b>Google&#39;s parent company, Alphabet, has increased its expected annual capital expenditure by $15 billion. The company said it now expects to spend between $195 and $205bn, up from its last-quarter prediction of $180-190bn. The company&#39;s capex hit $91.45bn last year, up from $52.5bn the year before. &#34;We have increased our capacity quite significantly over the past three years. Th……</div><div class="summary"><a href="https://www.datacenterdynamics.com/en/news/google-increases-2026-capex-195-205bn-as-it-accelerates-ai-data-center-buildout" target="_blank" rel="noopener noreferrer">原文↗</a></div></td>
+<td>Google News</td><td>云厂商</td><td>Google</td>
+</tr>
+
+<tr class="news-row" data-search="nvidia、micron、sandisk ai基础设施牛市可能加速 the ultimate bull run for nvidia, micron, and sandisk may be closer than investors think - 24/7 wall st. gavin baker认为ai模型成本下降可能重新分配利润至基础设施提供商，nvidia、micron和sandisk受益。nvidiaq1营收816.1亿美元，数据中心收入同比92%增长；micron云内存营收137.7亿美元，sandisk数据中心营收同比645%增长。hyperscaler如amazon和microsoft的2000亿美元资本支出验证需求，显示ai基础设施供应链关键性。 famed technology investor gavin baker just made the case that cheaper ai models could be the biggest gift possible to the picks-and-shovels crowd. in a post on x, baker argued that if market share shifts from frontier labs with 90%-plus inference margins toward cheaper open-source models, “margin dollars would effectively get redistributed from the frontier labs to ai infrastructure providers.”
+that would put the benefit squarely in the lane of nvidia (nasdaq: nvda | nvda price prediction), micron technology (nasdaq: mu), and sandisk (nasdaq: sndk), the companies selling the chips, memory, and storage behind the ai buildout. hyperscalers like amazon (nasdaq: amzn) and microsoft (nasdaq: msft) could also benefit if cheaper intelligence lowers the cost of serving customers and expands demand.
+nvidia is up 13.71% year to date to $212.77. a path to $300 in 2027 hinges on the bull case laid out below.
+wall street is already bullish, but the bar can go higher
+nvidia just posted $81.61 billion in q1 fy2027 revenue, up 85.2% year over year, with data center revenue climbing 92% yoy. non-gaap eps of $1.87 topped estimates, extending the company’s earnings beat streak to five straight quarters. management guided q2 revenue to $91.0 billion and disclosed $119 billion in supply commitments, pointing to demand visibility and a supply chain buildout unlike anything in company history.
+baker’s thesis: cheap tokens = more gpus and memory
+baker’s key point is that cheaper models drive incremental token demand. as inference costs collapse (the cost of inference has dropped a thousand-fold in three years), volume explodes. that volume runs on nvidia silicon paired with high bandwidth memory.
+micron’s cloud memory segment hit $13.77 billion in q3 fy2026 revenue with gross margins of 84.6%. sandisk’s datacenter segment exploded 645% year over year to $1.47 billion. hyperscaler capex validates the demand: amazon is planning roughly $200 billion in 2026 capex, and microsoft’s q3 fy26 capex hit $30.88 billion, up 84%.
+nvidia ceo jensen huang’s point lands in the same place as baker’s: “agentic ai has arrived, doing productive work, generating real value and scaling rapidly across companies and industries.”
+the math on $300
+at $212.77, nvidia trades around 41x trailing earnings. fy2026 non-gaap eps came in at $4.77, and current momentum, with revenue growth above 70% for consecutive quarters, gives wall street room to keep raising forward estimates. shares hitting $300 would require roughly 41% upside from here. historically, nvda has cleared that hurdle many times in prior cycles.
+the bottom line on $300
+baker’s framework flips the “cheap ai kills the bull case” fear on its head. if open source wins, infrastructure providers capture the margin. with a 100% beat rate over five quarters, a next earnings date of august 26, 2026, and hyperscaler capex still accelerating, $300 in 2027 remains ambitious, but the blueprint is there.
+contact [email protected] for any questions or corrections. https://247wallst.com/#organization google news · ai capex 芯片设计 存储 云厂商 nvidia micron sandisk gpu nvidia micron" data-source="https://247wallst.com/#organization" data-score="5" data-date="2026-07-22" data-keywords="gpu|nvidia|micron">
+<td><span class="badge score5">5</span></td>
+<td><a class="news-title" href="2026-07-22/Google_News_·_AI_CapEx_NVIDIA、Micron、SanDisk_AI基础设施牛市可能加速.html">NVIDIA、Micron、SanDisk AI基础设施牛市可能加速</a><div class="summary"><b>AI中文摘要：</b>Gavin Baker认为AI模型成本下降可能重新分配利润至基础设施提供商，NVIDIA、Micron和SanDisk受益。NVIDIAQ1营收816.1亿美元，数据中心收入同比92%增长；Micron云内存营收137.7亿美元，SanDisk数据中心营收同比645%增长。Hyperscaler如Amazon和Microsoft的2000亿美元资本支出验证需求，显示AI基础设施供应链关键性。</div><div class="summary">发布日期：2026-07-22 ｜ <a href="https://247wallst.com/investing/2026/07/22/the-ultimate-bull-run-for-nvidia-micron-and-sandisk-could-begin-soon" target="_blank" rel="noopener noreferrer">原文↗</a></div><div class="hits"><span class="hit">GPU</span><span class="hit">NVIDIA</span><span class="hit">Micron</span></div></td>
+<td>https://247wallst.com/#organization</td><td>芯片设计 / 存储 / 云厂商</td><td>NVIDIA、Micron、SanDisk</td>
+</tr>
+
+<tr class="news-row" data-search="谷歌deepmind向美国genesis计划注资4000万美元加速科学突破 accelerating the frontiers of scientific discovery: google’s $40m commitment to the genesis mission 谷歌deepmind宣布向美国能源部genesis计划投入4000万美元ai代币与云积分，支持17个国家实验室。首批工具包括alphaevolve、alphafold 3、alphagenome、weathernext与alphaearth foundations，后者可实现对蛋白质、基因、天气与地球系统的高精度建模。gemini for government将为数万用户提供一年期访问，帮助实验室自动化实验与数据分析。
+
+在北太平洋国家实验室，alphaevolve帮助研究人员快速探索复杂数学系统；在洛基国家实验室，gemini将显微镜校准时间从90分钟缩短至13分钟，手动步骤从50步降至2步，显著提升实验效率。
+
+该举措被视为加速美国科研突破的关键步骤，体现了ai算力与云服务在国家级科研中的重要性。 pushmeet kohli
+vp for science and strategic initiatives, google deepmind, and chief scientist, google cloud
+karthik narain
+chief product and business officer, google cloud
+scientists today face challenges of extraordinary scale and complexity. from shaping and simulating the intricate dynamics of fusion plasma, to exploring the vast search space of new materials, to making sense of the exabytes of data pouring out of the world&#39;s most advanced experimental facilities. the demands on modern research are unprecedented. frontier ai can help address these challenges, while accelerating groundbreaking scientific discoveries.
+in december, we shared our commitment to the white house&#39;s genesis mission — the national effort to harness ai and double the pace of american scientific discovery within a decade. since then, google deepmind (gdm) announced an early access program that provides ai for science tools to all 17 department of energy (doe) national laboratories, and google public sector shared how gemini for government could serve as an ai backbone for the doe.
+today, at the doe genesis mission summit 2026, we are expanding this by committing $40 million of ai tokens and cloud credits for researchers in support of the genesis mission.
+frontier ai tools for scientific discovery
+under this expanded commitment, we will first provide doe’s genesis mission awardees in-kind access to gdm’s frontier ai for science portfolio, including:
+- alphaevolve — a gemini-powered coding and discovery agent, for designing advanced algorithms.
+- alphafold 3 — a model for predicting the structure and interactions of proteins and other biomolecules.
+- alphagenome — a tool for understanding how variation in dna, including the non-coding genome, shapes biology and disease.
+- weathernext — a state-of-the-art family of ai weather forecasting models for mapping weather conditions.
+- alphaearth foundations — a foundational ai model for mapping and understanding our planet in unprecedented detail.
+second, we will provide gemini for government seats and tokens for one year to tens of thousands of users across the doe national laboratories’ operations, research, and management teams. this secure platform supports the full breadth of work from the research bench to the administration of specialized user facilities serving the entire scientific community, providing a single secure foundation that the doe mission can depend on.
+ai for science tools in action across the laboratory ecosystem
+while we have a lot of work still to do, the practical impact of the genesis mission is already coming to life across the laboratory ecosystem.
+at pacific northwest national laboratory (pnnl), senior scientist dr. henry kvinge is using alphaevolve to map out massive mathematical systems that are far too complex for humans to explore by hand. the ai uncovers hidden connections automatically, fast-tracking discoveries that would normally take researchers years to find.
+“modern math relies on abstraction, but combinatorics offers concrete models that make complex geometry and algebra easier to grasp. we’ve found that systems like alphaevolve are perfect for this search,” said dr. kvinge. “by leveraging the broad mathematical knowledge of llms, we can automate the exploration of countless angles. we’re still experimenting, but the discoveries are already shaping our future research.”
+at the national laboratory of the rockies (nlr), researchers are utilizing gemini to fundamentally change how they interact with physical laboratory hardware. dr. steven r. spurgeon, a senior materials data scientist at nlr, leads a pioneering program in autonomous materials discovery.
+&#34;our collaboration has allowed us to build an autonomous experimentation capability,&#34; said dr. spurgeon. &#34;by deploying gemini in our instruments, we cut microscope calibration time from over 90 minutes to about 13 minutes (eight times faster) and reduced the manual steps needed to focus an image from as many as 50 down to two. that&#39;s time and attention we&#39;ve given back to the science itself, enabling genuinely autonomous workflows that observe, reason, and decide in real time. this has helped us explore parts of the material design space we simply could not have reached through manual operation alone.&#34;
+driving american innovation
+the genesis mission represents an opportunity to transform research and science across america. by providing access to advanced ai tools, we aim to help scientists accelerate breakthroughs across critical energy, security, and scientific challenges. to learn more about how these ai capabilities can support your research initiatives, join us at the upcoming google public sector summit in october. google cloud blog google deepmind blog 云厂商 大模型/应用层 google deepmind google cloud" data-source="google cloud blog" data-score="5" data-date="2026-07-23" data-keywords="">
+<td><span class="badge score5">5</span></td>
+<td><a class="news-title" href="2026-07-22/Google_DeepMind_Blog_谷歌DeepMind向美国Genesis计划注资4000万美元加速科学突破.html">谷歌DeepMind向美国Genesis计划注资4000万美元加速科学突破</a><div class="summary"><b>AI中文摘要：</b>谷歌DeepMind宣布向美国能源部Genesis计划投入4000万美元AI代币与云积分，支持17个国家实验室。首批工具包括AlphaEvolve、AlphaFold 3、AlphaGenome、WeatherNext与AlphaEarth Foundations，后者可实现对蛋白质、基因、天气与地球系统的高精度建模。Gemini for Government将为数万用户提供一年期访问，帮助实验室自动化实验与数据分析。
+
+在北太平洋国家实验室，AlphaEvolve帮助研究人员快速探索复杂数学系统；在洛基国家实验室，Gemini将显微镜校准时间从90分钟缩短至13分钟，手动步骤从50步降至2步，显著提升实验效率。
+
+该举措被视为加速美国科研突破的关键步骤，体现了AI算力与云服务在国家级科研中的重要性。</div><div class="summary"><a href="https://cloud.google.com/blog/topics/public-sector/accelerating-frontiers-of-scientific-discovery-40-million-dollar-commitment-genesis-mission" target="_blank" rel="noopener noreferrer">原文↗</a></div></td>
+<td>Google Cloud Blog</td><td>云厂商 / 大模型/应用层</td><td>Google DeepMind、Google Cloud</td>
+</tr>
+
+<tr class="news-row" data-search="google加大资本支出推动s&amp;p 500走势，united rentals二季度业绩超预期 s&amp;p 500 stock rockets late on earnings as google boosts capex - investor&#39;s business daily 在s&amp;p 500成分股中，united rentals因第二季度业绩强于预期而股价飙升，其业绩增长受到ai数据中心建设需求的推动。与此同时，google宣布计划继续增加资本支出（capex），这一举措对市场情绪产生影响。从产业链意义来看，ai数据中心建设需求的持续增长正带动相关基础设施建设需求，而头部云厂商持续提升资本支出，预示着下游算力基础设施建设领域的长期需求环境依然强劲。 s&amp;p 500 member united rentals (uri) soared on stronger-than-forecast q2 results after wednesday&#39;s close as google (googl) got a late-day haircut. the divergent reactions to earnings weren&#39;t entirely unrelated. ai data center construction has helped supercharge earnings for uri, which provides a one-stop shop for large construction projects. google&#39;s plan to keep boosting capital spending suggests the demand environment for…
+s&amp;p 500 earnings: uri flashes buy signal as google hikes capex
+copyright ©2026 investor&#39;s business daily, llc. all rights reserved. 87990cbe856818d5eddac44c7b1cdeb8 investor&#39;s business daily google news · ai capex 云厂商 服务器/系统 united rentals google" data-source="investor&#39;s business daily" data-score="4" data-date="2026-07-22" data-keywords="">
+<td><span class="badge score4">4</span></td>
+<td><a class="news-title" href="2026-07-22/Google_News_·_AI_CapEx_Google加大资本支出推动S&amp;P_500走势，United_Rentals二季度业绩超预期.html">Google加大资本支出推动S&amp;P 500走势，United Rentals二季度业绩超预期</a><div class="summary"><b>AI中文摘要：</b>在S&amp;P 500成分股中，United Rentals因第二季度业绩强于预期而股价飙升，其业绩增长受到AI数据中心建设需求的推动。与此同时，Google宣布计划继续增加资本支出（CapEx），这一举措对市场情绪产生影响。从产业链意义来看，AI数据中心建设需求的持续增长正带动相关基础设施建设需求，而头部云厂商持续提升资本支出，预示着下游算力基础设施建设领域的长期需求环境依然强劲。</div><div class="summary">发布日期：2026-07-22 ｜ <a href="https://www.investors.com/news/sp-500-stock-united-rentals-q2-earnings-googl-capex" target="_blank" rel="noopener noreferrer">原文↗</a></div></td>
+<td>Investor&#39;s Business Daily</td><td>云厂商 / 服务器/系统</td><td>United Rentals、Google</td>
+</tr>
+
+<tr class="news-row" data-search="特斯拉二季度利润不及预期，ai与机器人领域投入激增导致现金流转负 tesla profit disappoints as elon musk’s ai spending surge leads to cash burn - new york post 特斯拉公布的第二季度财报显示，受ai及机器人基础设施投入激增影响，公司出现两年来首次自由现金流转负（-11亿美元），且调整后每股收益为33美分，低于分析师预期的51美分。尽管汽车交付量增至48.01万辆且营收达282.4亿美元，但高昂的运营成本与资本支出（本季度58亿美元）加剧了现金消耗。特斯拉计划今年资本支出将增至250亿美元，旨在通过自动驾驶与机器人技术实现高利润增长，这一战略转型正面临投资者对现金流状况的严密审视。 see more of our coverage in your search results.
+
+tesla on wednesday missed analysts’ profit forecasts for the second quarter and, for the first time in more than two years, reported negative free cash flow as the elon musk-led ev maker accelerated spending on infrastructure for its ai and robotics ambitions .
+
+shares were down about 2.5% in extended trading.
+
+musk plans to spend more than $25 billion this year, nearly triple last ​year’s $8.53 billion, as he bets on tesla’s ai-powered self-driving technology and robotics, over its auto business, which still is the core revenue generator.
+
+but the pivot is expensive, and while much of tesla’s valuation hangs on the promise of potentially high-margin revenue streams, the spending is heightening investor scrutiny .
+
+thomas monteiro, senior analyst at investing.com, said it could become difficult for tesla to keep up with its recent capital-spending pace as its cash burn worsens.
+
+“given that most of the tesla premium rests on future narratives, every capex dollar tesla commits will be judged more harshly than it was a year ago,” he said.
+
+shocking 105m americans are not working – more than during covid or the great recession
+
+new outbreak of explosive diarrhea parasite reported by fda — with 72 cases and no known source
+
+ford worker fired for allegedly stealing $8 worth of doritos, crackers just wants old job back
+
+adjusted profit in the quarter ended june 30 was 33 cents per share, versus analysts’ average expectation of 51 cents per share, according to data compiled by lseg.
+
+tesla’s profitability was hurt by higher operating expenses driven by ai, lower average selling prices and weaker regulatory credit revenue even as vehicle deliveries rose, the ev maker said on wednesday.
+
+capital expenditure in the quarter came in at $5.8 billion, compared with the expectation of about $6.2 billion.
+
+tesla reported negative free cash flow of $1.1 billion, compared with analysts’ expectation for cash burn of $3.3 billion.
+
+“this is a massive capex year, but i’m confident that all the things that we are investing in will yield incredible returns,” musk told analysts on a post-earnings conference call.
+
+ev sales in the quarter helped assuage some fears for now. tesla delivered 480,126 vehicles in the second quarter , above wall street expectations and up from 384,122 vehicles a year earlier.
+
+the austin, texas-based automaker reported revenue of $28.24 billion for the three months ended june 30, compared with analysts’ average estimate of $25.71 billion.
+
+automotive gross margin came in at 16.3%, compared with the expectation of 18.04%, according to visible alpha data.
+
+tesla also deployed 13.5 gwh of energy storage products in the quarter, up from 8.8 gwh in the first quarter and 9.6 gwh a year earlier.
+
+but the core automotive business remains under scrutiny as competitors introduce newer models, often at lower price points, while the company continues to rely heavily on its model 3 compact sedans and model y suvs for volume.
+
+tesla has tried to stimulate demand through lower-priced trims, including stripped-down, affordable versions of the model 3 and model y late last year, and the launch this month of a six-seater variant of the model ‌y in the ⁠united states, where demand has been hit by the removal of key tax credits last year.
+
+wall street expects tesla to deliver about 1.7 million vehicles in 2026, according to visible alpha data. that would imply growth from last year’s levels, but analysts remain divided over whether the second-quarter rebound reflects sustainable demand or timing effects after a weak first quarter.
+
+analysts say sustaining the momentum could be difficult, with third-quarter growth set to face a high bar after a strong performance in the same period last year.
+
+investors have increasingly turned their attention to musk’s push into self-driving technology and robotics, seeking clearer evidence that tesla’s autonomy narrative is shifting from promise to commercial reality.
+
+tesla’s energy generation and storage unit has emerged as a key counterweight to the auto business, helped by demand for grid-scale batteries that support renewable energy, data centers and electricity-network stability.
+
+tesla has said it expanded its unsupervised robotaxi service in austin and launched unsupervised rides in dallas and houston in april. the company also operates a robotaxi service in miami and expanded the service to orlando and tampa, florida. tesla has previously identified phoenix and las vegas among future expansion markets.
+
+the company received approval in april to deploy its advanced driver assistance software – called full self-driving supervised – in the netherlands. some other european countries have also allowed the technology following the dutch approval.
+
+a key vote to decide on europe-wide approval for the technology is expected later this year. tesla is also pushing for approval in china.
+
+tesla’s shares have fallen more than 15% this year. at about $1.4 trillion, it remains the world’s most valuable automaker by a wide margin, reflecting investor expectations that self-driving software, energy storage, robotaxis and humanoid robots could eventually deliver higher-margin growth than vehicle sales.
+
+lydia moynihan silicon valley is laser focused on slapping down a wealth tax — they should think a lot bigger
+
+steve cuozzo intrigue over st. barth hotel deal detailed in new book
+
+charles gasparino paramount skydance may have won the battle — but war against netflix is raging
+
+this story has been shared 3,262 times. 3,262 shocking 105m americans are not working – more than during covid or the great recession
+
+shocking 105m americans are not working – more than during covid or the great recession
+
+this story has been shared 1,902 times. 1,902 new outbreak of explosive diarrhea parasite reported by fda — with 72 cases and no known source
+
+new outbreak of explosive diarrhea parasite reported by fda — with 72 cases and no known source
+
+this story has been shared 1,696 times. 1,696 ford worker fired for allegedly stealing $8 worth of doritos, crackers just wants old job back
+
+ford worker fired for allegedly stealing $8 worth of doritos, crackers just wants old job back
+
+shaquille o’neal reveals why he thinks ‘celebrities are a–holes’
+
+shaquille o’neal reveals why he thinks ‘celebrities are a–holes’
+
+chadwick boseman’s family fighting over late ‘black panther’ actor’s estate 6 years after his tragic death
+
+chadwick boseman’s family fighting over late ‘black panther’ actor’s estate 6 years after his tragic death
+
+‘star trek’ actor reveals wife’s reaction to joy behar shockingly kissing him on ‘the view’
+
+‘star trek’ actor reveals wife’s reaction to joy behar shockingly kissing him on ‘the view’
+
+nolan wells’ independent autopsy results released — sparking even more questions
+
+nolan wells’ independent autopsy results released — sparking even more questions new york post google news · 关键人物 大模型/应用层 特斯拉" data-source="new york post" data-score="4" data-date="2026-07-22" data-keywords="">
+<td><span class="badge score4">4</span></td>
+<td><a class="news-title" href="2026-07-22/Google_News_·_关键人物_特斯拉二季度利润不及预期，AI与机器人领域投入激增导致现金流转负.html">特斯拉二季度利润不及预期，AI与机器人领域投入激增导致现金流转负</a><div class="summary"><b>AI中文摘要：</b>特斯拉公布的第二季度财报显示，受AI及机器人基础设施投入激增影响，公司出现两年来首次自由现金流转负（-11亿美元），且调整后每股收益为33美分，低于分析师预期的51美分。尽管汽车交付量增至48.01万辆且营收达282.4亿美元，但高昂的运营成本与资本支出（本季度58亿美元）加剧了现金消耗。特斯拉计划今年资本支出将增至250亿美元，旨在通过自动驾驶与机器人技术实现高利润增长，这一战略转型正面临投资者对现金流状况的严密审视。</div><div class="summary">发布日期：2026-07-22 ｜ <a href="https://nypost.com/2026/07/22/business/tesla-profit-disappoints-as-elon-musks-ai-spending-surge-leads-to-cash-burn" target="_blank" rel="noopener noreferrer">原文↗</a></div></td>
+<td>New York Post</td><td>大模型/应用层</td><td>特斯拉</td>
+</tr>
+
+<tr class="news-row" data-search="anthropic就版权问题与图书作者达成15亿美元和解，确立ai训练法律里程碑 anthropic&#39;s $1.5b piracy settlement with book authors is a record loss that hands ai labs their biggest legal win anthropic因在2021至2022年间从libgen和pilimi等盗版数据库下载图书，已与图书作者达成15亿美元的版权和解协议。该协议涉及约48.2万部作品中的91.3%，每位作者获赔约3000美元，为集体诉讼史上规模最大的版权和解案。尽管此次赔偿针对的是盗版数据而非ai训练本身，但此前法院已裁定使用合法书籍训练ai具有“变革性”且属于合理使用。此事件对ai实验室具有重大意义，因为这为通过网络抓取数据进行训练的行为提供了法律上的潜在保护，标志着ai训练法律边界的重要进展。 anthropic&#39;s $1.5b piracy settlement with book authors is a record loss that hands ai labs their biggest legal win
+anthropic has to pay book authors $1.5 billion in a copyright settlement. a federal court in san francisco approved the settlement after anthropic downloaded books from the piracy databases libgen and pilimi between 2021 and 2022. of roughly 482,460 listed works, 91.3 percent were claimed, netting about $3,000 each, four times the statutory minimum. anthropic must destroy the pirated files. authors retain claims over ai outputs that reproduce original works and over anthropic&#39;s future conduct. it&#39;s the largest copyright settlement in class action history.
+but the payout covers piracy, not ai training itself. judge alsup had previously ruled that training ai on legally obtained books is &#34;transformative - spectacularly so&#34; and falls under fair use. whether mass scraping of internet content without authors&#39; consent counts as legal acquisition remains an open question, so the fair use debate is likely far from over. still, the ruling looks like a milestone for ai labs that trained on web content without website owners&#39; consent, their main source of training data.
+ai news without the hype – curated by humans
+				subscribe to the decoder for ad-free reading, a weekly ai newsletter, our exclusive &#34;ai radar&#34; frontier report six times a year, full archive access, and access to our comment section.
+subscribe now https://the-decoder.com/#organization the decoder 大模型/应用层 anthropic anthropic" data-source="https://the-decoder.com/#organization" data-score="4" data-date="2026-07-22" data-keywords="anthropic">
+<td><span class="badge score4">4</span></td>
+<td><a class="news-title" href="2026-07-22/The_Decoder_Anthropic就版权问题与图书作者达成15亿美元和解，确立AI训练法律里程碑.html">Anthropic就版权问题与图书作者达成15亿美元和解，确立AI训练法律里程碑</a><div class="summary"><b>AI中文摘要：</b>Anthropic因在2021至2022年间从LibGen和PiLiMi等盗版数据库下载图书，已与图书作者达成15亿美元的版权和解协议。该协议涉及约48.2万部作品中的91.3%，每位作者获赔约3000美元，为集体诉讼史上规模最大的版权和解案。尽管此次赔偿针对的是盗版数据而非AI训练本身，但此前法院已裁定使用合法书籍训练AI具有“变革性”且属于合理使用。此事件对AI实验室具有重大意义，因为这为通过网络抓取数据进行训练的行为提供了法律上的潜在保护，标志着AI训练法律边界的重要进展。</div><div class="summary">发布日期：2026-07-22 ｜ <a href="https://the-decoder.com/anthropics-1-5b-piracy-settlement-with-book-authors-is-a-record-loss-that-hands-ai-labs-their-biggest-legal-win" target="_blank" rel="noopener noreferrer">原文↗</a></div><div class="hits"><span class="hit">Anthropic</span></div></td>
+<td>https://the-decoder.com/#organization</td><td>大模型/应用层</td><td>Anthropic</td>
+</tr>
+
+<tr class="news-row" data-search="formfactor可能因ai与hbm增长被低估21% formfactor (form) could be 21% undervalued on its ai and hbm growth narrative - yahoo finance formfactor（form）可能因ai和hbm（高带宽内存）增长叙事被低估21%。hbm是存储领域的关键技术，其增长推动formfactor在ai硬件供应链中的重要性。该公司核心业务围绕测试和测量设备，hbm需求增长直接影响其市场定位。 google news google news · hbm 存储 formfactor hbm" data-source="google news" data-score="4" data-date="2026-07-23" data-keywords="hbm">
+<td><span class="badge score4">4</span></td>
+<td><a class="news-title" href="2026-07-22/Google_News_·_HBM_FormFactor可能因AI与HBM增长被低估21%.html">FormFactor可能因AI与HBM增长被低估21%</a><div class="summary"><b>AI中文摘要：</b>FormFactor（FORM）可能因AI和HBM（高带宽内存）增长叙事被低估21%。HBM是存储领域的关键技术，其增长推动FormFactor在AI硬件供应链中的重要性。该公司核心业务围绕测试和测量设备，HBM需求增长直接影响其市场定位。</div><div class="summary"><a href="https://finance.yahoo.com/markets/stocks/articles/formfactor-form-could-21-undervalued-171016499.html" target="_blank" rel="noopener noreferrer">原文↗</a></div><div class="hits"><span class="hit">HBM</span></div></td>
+<td>Google News</td><td>存储</td><td>FormFactor</td>
+</tr>
+
+<tr class="news-row" data-search="nvidia开源gpu加速医学物理仿真框架 nvidia open sources first gpu-accelerated medical physics simulation framework nvidia推出开源gpu加速医学物理仿真框架，旨在加速医疗机器人开发。该框架整合解剖学、设备行为模拟和传感器数据，通过gpu并行计算将训练时间从5小时缩短至2分钟。技术整合nvidia isaac for healthcare，支持cmr surgical、johnson &amp; johnson等企业开发虚拟训练环境，提升机器人在复杂解剖和器械交互场景下的适应性。开源特性促进透明度，加速医疗机器人研发效率和监管审查进程。 before a healthcare robot can be useful in the real world, it has to learn how the physical world pushes back. anatomy varies. instruments bend, press, slip and interact with tissue. imaging can be noisy or incomplete. and the rare, edge scenarios developers most need to understand don’t appear on schedule.
+that creates one of the biggest bottlenecks in healthcare robotics: obtaining the enormous amount of varied data developers need to train, test and improve robot behavior.
+nvidia medical physics simulation framework — a new open source, gpu-accelerated capability within nvidia isaac for healthcare — announced today, helps medical robotics developers model anatomy-device interaction, generate hard-to-capture scenarios, test in silico, and train or evaluate robot policies before hardware-heavy testing.
+the framework brings together anatomy and medical device behavior with sensor simulation and robot learning so teams can create reusable simulation environments instead of rebuilding custom scenes for every workflow, saving developers time and bringing innovations to market faster.
+because medical physics simulation is open source, healthcare robotics developers can inspect the framework, adapt it to their own devices and workflows, and build on a gpu-accelerated foundation that works seamlessly with the broader nvidia stack.
+open source is especially important in healthcare because teams need transparency into the data, models and weights that shape system behavior. access to open models and model weights can help developers reproduce results, evaluate performance across different anatomies and scenarios, identify limitations and build evidence for regulatory review.
+a virtual training ground for medical robots
+for physical ai, experience is data in motion. developers need to train robots to operate properly even when anatomy changes, devices behave differently, conditions shift or a policy fails unexpectedly.
+medical physics simulation helps developers simulate anatomy, device contact, friction and sensor inputs, then test in interactions and environments to evaluate how robots perform across those changes. powered by nvidia cuda and part of isaac for healthcare — built on the nvidia warp, newton and cosmos simulation and generative ai technologies — the framework can run hundreds of parallel simulation environments, helping teams explore more scenarios and identify failure modes earlier in development.
+for robot builders, this turns simulation from a bespoke engineering project into reusable infrastructure. the difference now is scale: benchmarks show 8,192 robot-training environments running in parallel with gpu-native simulation cut training from over five hours to under two minutes.
+with this framework, developers can connect vascular anatomy, flexible instruments such as catheters and guidewires, simulated x-ray imaging and reinforcement learning. the framework is designed to extend beyond that example to additional devices, anatomies, sensors and healthcare robotics domains.
+medical physics simulation brings together classical physics simulation and generative ai physics simulation. classical simulation helps model known physical rules, such as device contact, friction and motion. nvidia cosmos-h dreams, the real-time generative ai physics simulation capability within medical physics simulation, helps model visual scene dynamics learned from procedural data.
+together, these approaches give developers a richer way to build and test healthcare robotics systems in virtual environments before moving to physical prototypes and lab testing.
+an ecosystem building the future of medical robotics
+medical robotics leaders are already applying simulation-driven development to solve specific surgical challenges.
+cmr surgical and cambridge consultants, part of capgemini, are using cosmos-h-dreams to implicitly learn interaction physics for soft-tissue surgical procedures and generate patient-specific simulations. cmr contributed nearly 500 hours of anonymized clinical data from its versius surgical robotic system to the open-h embodiment open dataset, benefiting procedures including cholecystectomy, prostatectomy, hernia repair and hysterectomy.
+“open source models allow us to build on shared knowledge, accelerating responsible innovation and, ultimately, gives us the potential to deliver more consistent care and better outcomes for patients worldwide,” said chris fryer, chief technology officer at cmr surgical.
+johnson &amp; johnson medtech is using isaac for healthcare’s medical physics simulation and a cosmos-based foundation model to build digital twins of its endoluminal monarch platform for urology, modeling complex anatomy and kidney-stone scenarios.
+xcath is using the medical physics simulation for endovascular autonomy policy training. inner logic is accelerating the evolution of medical technology with synthetic data, validating device mechanics and producing in silico evidence to support regulatory pathways with nvidia medical physical simulation.
+medtronic structural heart is exploring applying medical physics simulation with simulated x-ray sensing to generate data for catheter navigation research.
+a new layer in the isaac for healthcare stack
+as a modular capability within nvidia isaac for healthcare, medical physics simulation can be used on its own or alongside digital twin pipelines, medical sensor simulation, the nvidia isaac lab open robot-learning framework and nvidia open models and policies.
+developers can explore the open source medical physics simulation framework, review available reference workflows and start building simulation environments for their own devices, anatomies and healthcare robotics applications. nvidia blog nvidia blog 云厂商 大模型/应用层 cmr surgical johnson &amp; johnson medtech xcath inner logic medtronic structural heart gpu nvidia" data-source="nvidia blog" data-score="4" data-date="2026-07-22" data-keywords="gpu|nvidia">
+<td><span class="badge score4">4</span></td>
+<td><a class="news-title" href="2026-07-22/NVIDIA_Blog_NVIDIA开源GPU加速医学物理仿真框架.html">NVIDIA开源GPU加速医学物理仿真框架</a><div class="summary"><b>AI中文摘要：</b>NVIDIA推出开源GPU加速医学物理仿真框架，旨在加速医疗机器人开发。该框架整合解剖学、设备行为模拟和传感器数据，通过GPU并行计算将训练时间从5小时缩短至2分钟。技术整合NVIDIA Isaac for Healthcare，支持CMR Surgical、Johnson &amp; Johnson等企业开发虚拟训练环境，提升机器人在复杂解剖和器械交互场景下的适应性。开源特性促进透明度，加速医疗机器人研发效率和监管审查进程。</div><div class="summary">发布日期：2026-07-22 ｜ <a href="https://blogs.nvidia.com/blog/medical-physics-simulation-open-source" target="_blank" rel="noopener noreferrer">原文↗</a></div><div class="hits"><span class="hit">GPU</span><span class="hit">NVIDIA</span></div></td>
+<td>NVIDIA Blog</td><td>云厂商 / 大模型/应用层</td><td>CMR Surgical、Johnson &amp; Johnson MedTech、XCath、Inner Logic、Medtronic Structural Heart</td>
+</tr>
+
+<tr class="news-row" data-search="openai在佐治亚州effingham县启动project camellia项目 building ai infrastructure with the effingham county community openai在佐治亚州effingham县启动project camellia项目，承诺负责能源、社区投资、就业创造及提供codex访问权限。该项目强调负责任的能源使用和社区发展，但未透露具体投资规模或技术细节。 openai news 云厂商 服务器/系统 openai openai" data-source="openai news" data-score="4" data-date="2026-07-23" data-keywords="openai">
+<td><span class="badge score4">4</span></td>
+<td><a class="news-title" href="2026-07-22/OpenAI_News_OpenAI在佐治亚州Effingham县启动Project_Camellia项目.html">OpenAI在佐治亚州Effingham县启动Project Camellia项目</a><div class="summary"><b>AI中文摘要：</b>OpenAI在佐治亚州Effingham县启动Project Camellia项目，承诺负责能源、社区投资、就业创造及提供Codex访问权限。该项目强调负责任的能源使用和社区发展，但未透露具体投资规模或技术细节。</div><div class="summary"><a href="https://openai.com/index/building-ai-infrastructure-with-the-effingham-county-community" target="_blank" rel="noopener noreferrer">原文↗</a></div><div class="hits"><span class="hit">OpenAI</span></div></td>
+<td>OpenAI News</td><td>云厂商 / 服务器/系统</td><td>OpenAI</td>
+</tr>
+
+<tr class="news-row" data-search="openai与能源部合作加速科学发现 advancing the next era of national science openai与美国能源部（doe）合作，利用前沿ai技术加速科学发现进程。该合作旨在通过ai加速实验室研究，推动国家科学技术创新。尽管未披露具体技术细节或数字，但该项目凸显了ai在科研领域的应用潜力，可能对产业链上游研发产生影响。 openai news 云厂商 openai 美国能源部 openai" data-source="openai news" data-score="2" data-date="2026-07-23" data-keywords="openai">
+<td><span class="badge score2">2</span></td>
+<td><a class="news-title" href="2026-07-22/OpenAI_News_OpenAI与能源部合作加速科学发现.html">OpenAI与能源部合作加速科学发现</a><div class="summary"><b>AI中文摘要：</b>OpenAI与美国能源部（DOE）合作，利用前沿AI技术加速科学发现进程。该合作旨在通过AI加速实验室研究，推动国家科学技术创新。尽管未披露具体技术细节或数字，但该项目凸显了AI在科研领域的应用潜力，可能对产业链上游研发产生影响。</div><div class="summary"><a href="https://openai.com/index/advancing-the-next-era-of-national-science" target="_blank" rel="noopener noreferrer">原文↗</a></div><div class="hits"><span class="hit">OpenAI</span></div></td>
+<td>OpenAI News</td><td>云厂商</td><td>OpenAI、美国能源部</td>
+</tr>
+
+<tr class="news-row" data-search="新闻机构采用openai ai技术增强报道并扩大受众 how news organizations are using ai to advance their vital missions 全球多家新闻机构正在将openai提供的ai工具应用于采编工作流程，以提升新闻报道的深度与速度、扩大受众覆盖以及优化业务运营。openai表示，其语言模型和生成式ai服务已被记者和出版商用于内容创作、受众分析和广告投放等环节，帮助媒体在竞争激烈的数字环境中提高效率和盈利能力。这一趋势凸显了大模型在应用层的快速渗透，也为媒体行业的人工智能采用提供了典型案例。这些工具还被用于自动生成新闻摘要、进行多语言翻译以及基于用户兴趣的个性化内容推荐，进一步提升了新闻的可及性和用户粘性。 openai news 大模型/应用层 openai openai" data-source="openai news" data-score="1" data-date="2026-07-23" data-keywords="openai">
+<td><span class="badge score1">1</span></td>
+<td><a class="news-title" href="2026-07-22/OpenAI_News_新闻机构采用OpenAI_AI技术增强报道并扩大受众.html">新闻机构采用OpenAI AI技术增强报道并扩大受众</a><div class="summary"><b>AI中文摘要：</b>全球多家新闻机构正在将OpenAI提供的AI工具应用于采编工作流程，以提升新闻报道的深度与速度、扩大受众覆盖以及优化业务运营。OpenAI表示，其语言模型和生成式AI服务已被记者和出版商用于内容创作、受众分析和广告投放等环节，帮助媒体在竞争激烈的数字环境中提高效率和盈利能力。这一趋势凸显了大模型在应用层的快速渗透，也为媒体行业的人工智能采用提供了典型案例。这些工具还被用于自动生成新闻摘要、进行多语言翻译以及基于用户兴趣的个性化内容推荐，进一步提升了新闻的可及性和用户粘性。</div><div class="summary"><a href="https://openai.com/index/how-news-organizations-are-using-ai" target="_blank" rel="noopener noreferrer">原文↗</a></div><div class="hits"><span class="hit">OpenAI</span></div></td>
+<td>OpenAI News</td><td>大模型/应用层</td><td>OpenAI</td>
+</tr>
+
+</tbody></table></div>
+</section>
+
+<section class="date-group" data-date="2026-07-21">
+<h2>2026-07-21（<span class="visible-count">3</span>篇）</h2>
+<div class="table-wrap"><table><thead><tr><th class="score-col">重要性</th><th>标题与摘要</th><th class="source-col">信源</th><th class="chain-col">产业链</th><th class="company-col">公司</th></tr></thead><tbody>
+
+<tr class="news-row" data-search="惠斯顿德克萨斯开设7亿美元ai超芯片制造厂 built in fort worth: wistron opens advanced manufacturing plant to produce nvidia ai systems 惠斯顿在德克萨斯州福特沃斯开设324,000平方英尺的ai超芯片制造厂，投资7亿美元，计划年产1万多块gb300 grace blackwell ultra超芯片和vera rubin超芯片。该工厂采用数字孪生技术进行设计，是nvidia在美国制造500亿美元ai平台的重要节点，创造500个岗位并计划扩至1000个。nvidiaceo黄仁勋强调此举推动美国重工业化，强化本土ai基础设施建设。 the ai era runs on ai infrastructure. many of these advanced systems are built and tested in texas.
+wistron opened its first u.s. manufacturing facility today in fort worth — a 324,000-square-foot greenfield plant producing superchips at the heart of some of the world’s most capable ai systems.
+in front of an audience of wistron executives, taiwan government officials and local fort worth leaders, nvidia founder and ceo jensen huang took the stage with wistron chairman simon lin at the factory’s opening ceremony to talk about what it means to build the infrastructure for the ai era in america.
+“manufacturing is an essential pillar for every economy and every country,” huang said. “building chip plants, packaging plants, computer system plants like this, and ai factories all over the united states, has allowed the united states to really reindustrialize for the first time in a long time.”
+the plant — wistron’s d1 facility — currently runs two manufacturing cells: one producing the nvidia gb300 grace blackwell ultra superchip and one that will produce the nvidia vera rubin superchip. d1 is scaling up this year to produce tens of thousands of boards per month of the most advanced technology in the industry.
+building ai at scale takes more than chips and code. it takes factories, supply chains and skilled workers — a domestic manufacturing base capable of building at volume and adapting as the technology moves. the fort worth plant is where that capacity takes shape.
+a $700 million commitment
+the state-of-the-art facility represents a $700 million commitment to advanced manufacturing in the u.s. and has created over 500 new jobs across the texas facility, with plans to expand to 1,000 by the end of the year.
+“it’s creating jobs in plumbing, construction, manufacturing and electricians,” huang said. “so many different types of jobs here in the united states.”
+“from the macro view of the whole ai world, down to community and country — it’s a great vision,” lin said. “i think we’re going to enjoy the next era of ai life. i hope that we will be happier and healthier.”
+nvidia has committed to manufacturing up to $500 billion in advanced ai platforms in the united states. the wistron fort worth factory is one of the projects making that number real.
+building first in a virtual world
+wistron designed and fully simulated the entire facility before construction began in a digital twin built on nvidia’s open platform, including nemotron and cosmos frontier models, omniverse and metropolis libraries, and open frameworks including physicsnemo.
+that enabled wistron engineers to validate assembly line layouts, optimize production processes and train workers on standard operating procedures virtually — before any system came online in the real factory.
+winning every layer
+the ai era isn’t just about chips — it’s about winning at every layer of the stack, from semiconductors to systems to the factories that build them.
+“just as agriculture is a fundamental infrastructure of society, in the future these ai factories will be a fundamental infrastructure of society,” huang said. “today we have roads and agriculture and railroads. in the future we’ll have ai factories and the internet. electricity comes in … and the tokens get generated in the factories.”
+the ceremony included the unveiling of the first nvidia gb300 grace blackwell ultra superchip produced on site, which huang signed.
+huang described the system built around the nvidia gb300 grace blackwell ultra superchip as “the most powerful ai supercomputer in the world.”
+“it has one-and-a-half million parts inside — two tons, 4 million dollars — and we’re producing them like phones, right here in wistron, cranking them out in volume because the world needs all of these machines to drive the intelligence infrastructure,” huang added.
+huang also sat down for interviews with mike allen of axios and separately with lana ferguson of the dallas morning news — who also covered coherent’s groundbreaking of a new manufacturing facility in sherman in june.
+a new chapter of american manufacturing is taking shape in fort worth. wistron’s factory is part of nvidia’s broader commitment to build in america, for america — strengthening u.s. supply chains, creating high-skilled jobs and giving american communities a direct role in building the future with ai. nvidia blog nvidia blog 晶圆代工 服务器/系统 nvidia wistron nvidia" data-source="nvidia blog" data-score="5" data-date="2026-07-21" data-keywords="nvidia">
+<td><span class="badge score5">5</span></td>
+<td><a class="news-title" href="2026-07-21/NVIDIA_Blog_惠斯顿德克萨斯开设7亿美元AI超芯片制造厂.html">惠斯顿德克萨斯开设7亿美元AI超芯片制造厂</a><div class="summary"><b>AI中文摘要：</b>惠斯顿在德克萨斯州福特沃斯开设324,000平方英尺的AI超芯片制造厂，投资7亿美元，计划年产1万多块GB300 Grace Blackwell Ultra超芯片和Vera Rubin超芯片。该工厂采用数字孪生技术进行设计，是NVIDIA在美国制造500亿美元AI平台的重要节点，创造500个岗位并计划扩至1000个。NVIDIACEO黄仁勋强调此举推动美国重工业化，强化本土AI基础设施建设。</div><div class="summary">发布日期：2026-07-21 ｜ <a href="https://blogs.nvidia.com/blog/wistron-manufacturing-texas" target="_blank" rel="noopener noreferrer">原文↗</a></div><div class="hits"><span class="hit">NVIDIA</span></div></td>
+<td>NVIDIA Blog</td><td>晶圆代工 / 服务器/系统</td><td>NVIDIA、Wistron</td>
+</tr>
+
+<tr class="news-row" data-search="google推出gemini 3.6 flash等新ai模型，提升代理工作效率 introducing gemini 3.6 flash, 3.5 flash-lite, and 3.5 flash cyber google发布gemini 3.6 flash、3.5 flash-lite和3.5 flash cyber三个新模型，旨在提升ai代理工作效率。3.6 flash相比3.5 flash在输出token效率上提升17%，成本降低15%，在代码生成和知识工作中表现更优。3.5 flash-lite以350 tokens/s的速度处理高吞吐量任务，成本效益更高。3.5 flash cyber专注于网络安全，通过codemender平台实现高效漏洞修复。这些模型强化了ai代理的成本效率和安全性，推动了云服务和应用层的发展。 introducing gemini 3.6 flash, 3.5 flash-lite, and 3.5 flash cyber
+developers and customers building production ai agents need higher token efficiency, lower latency, and more reliable performance. our flash series of models is built to meet the sweet spot of efficiency and quality to enable scaling agentic workflows. building on gemini 3.5 flash, we’re introducing new gemini models:
+- 3.6 flash: our workhorse model that delivers better coding, knowledge work, and multimodal performance. according to the artificial analysis index, it reduces output token usage by 17% compared to 3.5 flash, and in some benchmarks like deepswe by datacurve, we observe up to 65%, all at a lower cost per output token.
+- 3.5 flash-lite: our fastest, most cost-effective 3.5-class model, delivering 350 output tokens per second according to the artificial analysis index, also significantly outperforming prior flash-lite generations in agentic workflows.
+- 3.5 flash cyber in codemender: successful cybersecurity applications require careful orchestration of a model alongside an agent infrastructure. we’re introducing a combination of a new, highly efficient, specialized cyber-focused model paired with our codemender code security agent that delivers competitive performance at the frontier.
+beyond today’s releases, gemini 3.5 pro is currently testing with partners and we plan to make it broadly available as soon as it’s ready. in parallel, our team is already focusing on building the next generation of models. we have started our most ambitious pre-training run yet, for gemini 4, and are excited by the progress.
+3.6 flash: more efficient and better quality than 3.5 flash
+gemini 3.6 flash builds directly on developer and customer feedback from 3.5 flash. 3.6 flash not only delivers a step up in coding and knowledge work, but it does this while meaningfully improving token efficiency. for example, on the artificial analysis index, we see 3.6 flash consuming 17% fewer output tokens than 3.5 flash. it also takes fewer reasoning steps and tool calls to accomplish multi-step workflows.
+this enhanced efficiency is also combined with a lower price than 3.5 flash. at $1.50/1m input tokens and $7.50/1m output tokens, 3.6 flash reduces the overall cost per agentic task, making agents more cost-effective to build and run.
+3.6 flash shows better token efficiency and reduced verbosity than 3.5 flash in an osworld verified task (api)
+even while being more efficient, 3.6 flash sees performance gains compared to 3.5 flash across use cases:
+- 3.6 flash delivers higher precision with fewer unwanted code edits and reduced execution loops, as seen in deepswe (49% vs. 37%), and shows significant improvement in ml research, as seen in mle bench (63.9% vs. 49.7%).
+- it has improved computer use capabilities as seen in osworld-verified (83.0% vs. 78.4%). computer use is now a built-in client side tool via the gemini api and gemini enterprise.
+- it outperforms 3.5 flash in knowledge work, as shown by benchmarks like gdpval-aa v2 (1421 vs. 1349). customers like hebbia and harvey have found it particularly capable at multimodal tasks like document parsing, chart and data analysis, and report drafting.
+customers report 3.6 flash is a step forward in both cost and quality, balancing token efficiency, accuracy, and speed across complex workflows and knowledge-based tasks:
+built with safety
+3.6 flash is shipping with enhanced frontier safety safeguards in the domains of chemical, biological, radiological, and nuclear (cbrn) and cyber offense misuses. these safeguards make the model substantially more resistant to jailbreaks. at the same time, the model has been trained to minimize refusals for beneficial uses.
+for more information, see the 3.6 flash model card.
+3.5 flash-lite: built to scale agentic workflows
+beyond flash, we’re also releasing gemini 3.5 flash-lite, designed for both low-latency tasks and tasks where high throughput is critical for developers workflows, like agentic search and document processing.
+3.5 flash-lite is the fastest model in the 3.5 series. as measured by artificial analysis, it runs at 350 output tokens/s. priced at $0.3/1m input tokens and $2.5/1m output tokens and with significantly better quality than 3.1 flash-lite, 3.5 flash-lite offers a strong price-to-performance ratio for developers and customers running high throughput production traffic.
+3.5 flash-lite executes high volume tasks at a lower latency than 3.5 flash.
+3.5 flash-lite enables efficient scaling for agentic systems. across thinking levels, the model significantly outperforms 3.1 flash-lite. depending on the workload, developers can configure the model to prioritize low-latency, low-cost execution for high-volume tasks with the minimal and low thinking levels, or engage higher thinking levels to process multi-step subagent workloads. the model now also has computer use as a built-in tool to reliably support these agentic tasks across surfaces.
+it’s a significant step up in coding and agentic tasks as seen in terminal-bench 2.1 (54% vs 31%), long context as seen in gdm-mrcr v2 (72.2% vs. 60.1%), and real-world task execution as seen in gdpval-aa v2 (1140 vs. 642).
+in fact, on many agentic and coding evals, 3.5 flash-lite even outperforms 3 flash, including on swe-bench pro (54.2% vs. 49.6%) and osworld-verified (74.0% vs. 65.1%), making it a faster &amp; more capable option for workloads on both 2.5 and 3 flash.
+early customers of 3.5 flash-lite are highlighting its unique combination of speed, intelligence, and cost efficiency for scaling agentic workflows and data processing tasks:
+for more information about the model, see the 3.5 flash-lite model card.
+3.5 flash cyber in codemender: finding and fixing vulnerabilities efficiently
+ai models have become capable of finding security vulnerabilities faster than current systems can fix them. tackling this growing threat requires an approach to securing software that is highly capable and efficient.
+flash’s performance and efficiency makes it an ideal foundation to detect, validate, and patch code security issues at scale. gemini 3.5 flash cyber is built on top of 3.5 flash, and fine-tuned for finding and fixing cybersecurity vulnerabilities at a lower price per token than larger models.
+within codemender, which uses multiple 3.5 flash cyber agents working together to produce a single combined report, 3.5 flash cyber reaches competitive performance at the frontier on the popular benchmark cybergym.
+given the dual-use nature of this technology, we have taken an intentional approach to deploying 3.5 flash cyber. the model will be exclusively available to governments and trusted partners via codemender soon as part of a limited-access pilot program. this will give frontline defenders a head start in finding and fixing critical vulnerabilities before they can be exploited, while mitigating against broader misuse.
+3.6 flash and 3.5 flash-lite: get started today
+3.6 flash and 3.5 flash-lite are available starting today:
+- for developers in the gemini api via google ai studio and android studio. 3.6 flash is also available in google antigravity. get started with the developer guide.
+- for enterprises in gemini enterprise agent platform. 3.6 flash is also available in the gemini enterprise app.
+- for everyone via the gemini app. 3.5 flash-lite is also rolling out in google search.
+as you start building with 3.6 flash and 3.5 flash-lite, we welcome your feedback to improve future gemini models and look forward to releasing 3.5 pro soon. google google deepmind blog 云厂商 大模型/应用层 服务器/系统 google" data-source="google" data-score="4" data-date="2026-07-21" data-keywords="">
+<td><span class="badge score4">4</span></td>
+<td><a class="news-title" href="2026-07-21/Google_DeepMind_Blog_Google推出Gemini_3.6_Flash等新AI模型，提升代理工作效率.html">Google推出Gemini 3.6 Flash等新AI模型，提升代理工作效率</a><div class="summary"><b>AI中文摘要：</b>Google发布Gemini 3.6 Flash、3.5 Flash-Lite和3.5 Flash Cyber三个新模型，旨在提升AI代理工作效率。3.6 Flash相比3.5 Flash在输出token效率上提升17%，成本降低15%，在代码生成和知识工作中表现更优。3.5 Flash-Lite以350 tokens/s的速度处理高吞吐量任务，成本效益更高。3.5 Flash Cyber专注于网络安全，通过CodeMender平台实现高效漏洞修复。这些模型强化了AI代理的成本效率和安全性，推动了云服务和应用层的发展。</div><div class="summary">发布日期：2026-07-21 ｜ <a href="https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-6-flash-3-5-flash-lite-3-5-flash-cyber" target="_blank" rel="noopener noreferrer">原文↗</a></div></td>
+<td>Google</td><td>云厂商 / 大模型/应用层 / 服务器/系统</td><td>Google</td>
+</tr>
+
+<tr class="news-row" data-search="google推出gemini 3.5 flash cyber模型，提升自动化漏洞修复能力 introducing gemini 3.5 flash cyber google推出基于gemini 3.5 flash微调的轻量化网络安全模型gemini 3.5 flash cyber，旨在通过高效、低成本的方式发现、验证并修复软件漏洞。该模型通过codemender等工具实现自动化漏洞发现，通过在cybergym基准测试中的表现显示，其在处理大规模代码路径扫描时比大型模型更具成本效益。目前该模型通过有限访问试点计划向政府及受信任合作伙伴提供，未来将通过gemini enterprise agent platform向客户开放，为网络安全防御提供规模化支持。 google has invested in cybersecurity for years, pioneering automated vulnerability discovery to secure the worldâs codebases. tools like codemender, our code security agent, can automatically find and fix critical software vulnerabilities. but as ai agents become more capable at finding vulnerabilities faster than defenders can fix them, addressing this global threat requires a highly capable, affordable, and scalable approach.
+today, weâre expanding our longtime efforts to better prepare defenders by introducing gemini 3.5 flash cyber, our lightweight cybersecurity model built on top of 3.5 flash and fine-tuned to find, validate, and patch vulnerabilities quickly and efficiently, making it more effective at these tasks than geminiâs mainline flash models.
+flashâs performance and efficiency makes it an ideal foundation for our cybersecurity model efforts. by building on top of flash, 3.5 flash cyber offers a cost-efficient and highly capable alternative to large, costly cybersecurity models.
+given the dual-use nature of this technology, we have taken an intentional approach to how we deploy 3.5 flash cyber. as part of a limited-access pilot program, 3.5 flash cyber will be exclusively available to governments and trusted partners via codemender soon, expanding over time. this will give frontline defenders a head start in finding and fixing critical vulnerabilities before they can be exploited, while mitigating against broader misuse.
+separately, we&#39;re also bringing codemender&#39;s foundational capabilities directly to customers with generally available gemini models through the gemini enterprise agent platform.
+the search space problem: the advantage of lightweight models in code security
+finding deep-seated flaws requires exploring an immense execution search space. relying on a single, expensive call to a massive language model can create a bottleneck. 3.5 flash cyber is particularly suitable for finding vulnerabilities where the agent has to scan a large codebase and analyze a large number of codepaths.
+codemender invokes 3.5 flash cyber multiple times, so agents can analyze vastly more code paths to discover and validate vulnerabilities. the sub-agents then produce a single, high-quality report.
+thanks to its speed and affordability, 3.5 flash cyber can be easily integrated into frequent scans, time-sensitive launch processes or commit scanning pipelines at scale.
+3.5 flash cyber benchmark results: an efficient alternative to larger cybersecurity models
+we tested 3.5 flash cyber on a variety of benchmarks. in particular, we tested 3.5 flash cyber on the cybergym benchmark, which evaluates ai agents against hundreds of real-world software vulnerabilities. leveraging the low cost of 3.5 flash cyber by configuring codemender to call 3.5 flash cyber up to five times for a single, final report, the overall agent achieved competitive performance against significantly larger models on cybergym*. https://deepmind.google/about/ google deepmind blog 大模型/应用层 google" data-source="https://deepmind.google/about/" data-score="3" data-date="2026-07-21" data-keywords="">
+<td><span class="badge score3">3</span></td>
+<td><a class="news-title" href="2026-07-21/Google_DeepMind_Blog_Google推出Gemini_3.5_Flash_Cyber模型，提升自动化漏洞修复能力.html">Google推出Gemini 3.5 Flash Cyber模型，提升自动化漏洞修复能力</a><div class="summary"><b>AI中文摘要：</b>Google推出基于Gemini 3.5 Flash微调的轻量化网络安全模型Gemini 3.5 Flash Cyber，旨在通过高效、低成本的方式发现、验证并修复软件漏洞。该模型通过CodeMender等工具实现自动化漏洞发现，通过在CyberGym基准测试中的表现显示，其在处理大规模代码路径扫描时比大型模型更具成本效益。目前该模型通过有限访问试点计划向政府及受信任合作伙伴提供，未来将通过Gemini Enterprise Agent Platform向客户开放，为网络安全防御提供规模化支持。</div><div class="summary">发布日期：2026-07-21 ｜ <a href="https://deepmind.google/blog/introducing-gemini-3-5-flash-cyber" target="_blank" rel="noopener noreferrer">原文↗</a></div></td>
+<td>https://deepmind.google/about/</td><td>大模型/应用层</td><td>Google</td>
+</tr>
+
+</tbody></table></div>
+</section>
+
+<section class="date-group" data-date="2026-07-20">
+<h2>2026-07-20（<span class="visible-count">1</span>篇）</h2>
+<div class="table-wrap"><table><thead><tr><th class="score-col">重要性</th><th>标题与摘要</th><th class="source-col">信源</th><th class="chain-col">产业链</th><th class="company-col">公司</th></tr></thead><tbody>
+
+<tr class="news-row" data-search="开源模型网络安全差距缩小，kimi k3发布，ai监管提案 import ai 465: open vs closed gaps; kimi k3; demis&#39; big policy plan 英国ai security institute分析显示，开源模型（如glm-5.2和deepseek v4-pro）在网络安全任务上的性能接近闭源模型，差距缩小至4-7个月，而长期任务差距扩大。中国kimi推出2.8t参数kimi k3模型，性能接近claude fable 5和gpt 5.6 sol，但可能存在“benchmaxxing”现象。deepmind创始人demis hassabis提出类似finra的ai监管框架，建立标准机构测试前沿ai系统，强调第三方评估和行业自律。这些发展表明开源模型对产业链的影响日益显著，可能改变ai安全和政策格局。 import ai 465: open vs closed gaps; kimi k3; demis&#39; big policy plan
+the singularity will be seen in hindsight as an interregnum
+welcome to import ai, a newsletter about ai research. import ai runs on arxiv, cappuccinos, and feedback from readers. if you’d like to support this, please subscribe.
+uk government: gap between open and closed weight models on cyber is shrinking:
+…the cyber-eschaton cometh…
+the uk government’s ai security institute (aisi) has analyzed the delta in cybersecurity capabilities between powerful proprietary models and open weight models. the results show that this year, the gap has shrunk. “this is our first public analysis of how far leading open weight models trail the closed cyber frontier,” aisi writes. “recent open models glm-5.2 and deepseek v4-pro perform similarly to frontier closed models released 4 to 7 months before them – a narrower gap than the 6 to 10 months we measured through most of 2025.”
+specific details: on a set of 70 evals for specific, narrow cyber capabilities, glm-5.2 is closest to claude opus 4.6, which was released 4.3 months earlier, while deepseek-v4-pro sits somewhere between claude opus 4.5 and gpt-5 (released in november and august 2025, respectively). “aisi intends to test kimi k3 on this same basis, once its weights are publicly released,” aisi writes.
+    the gap lengthens a bit for long-horizon cyber ranges, which are tasks that see how well models can chain various capabilities together to complete a full hacking operation. specifically, on a cyberrange called the last ones, “glm-5.2 reaches as far as opus 4.5, a model released less than 7 months before it, while deepseek’s v4-pro falls below sonnet 4.5 (a sub-cyber-frontier model released 7 months before it),” aisi writes. “the gap here is larger than on our narrow cyber tasks”.
+    this, i think, rhymes with the idea that though open weight models can be superficially quite strong, they sometimes lack a bit of the generalization magic juice that distinguishes proprietary models. this is what people in the ai industry call “big model smell”.
+why this matters - the offense and defense balance of the world is about to change: the main implication here is that the gap between the controllable frontier and the lawless openly diffused frontier is shrinking. “this implies cyber defenders have a short window to prepare before today’s frontier cyber capabilities may become accessible without the same safeguards” used by proprietary companies, aisi writes.
+   read more: how far behind the frontier are leading open weight models on cyber? (uk ai security institute blog).
+***
+kimi: china shortens the gap between chinese and western models:
+…plus, early signs of ai r&amp;d…
+in the last couple of years, chinese firms have begun to out-compete western actors at building and deploying open weight models (e.g, deepseek), and now are starting to close the gap on frontier models as well. the latest and best example of this is kimi k3, a 2.8 trillion parameter model. kimi has exceptionally strong scores on all the tasks that the major proprietary ones benchmark on and typically matches or trails claude fable 5 and gpt 5.6 sol.
+    however, kimi has some brittleness which smells to me like “benchmaxxing” - performance may have been tuned around these benchmarks in a way that harms some parts of generalization.
+   “while its overall performance still trails the most powerful proprietary models, claude fable 5 and gpt 5.6 sol, kimi k3 demonstrated frontier-level performance across our evaluation suite, consistently outperforming other tested models,” kimi writes.
+   kimi’s weights will be made available in the coming weeks along with a research paper about the model.
+ai that builds ai: kimi has some example use-cases which relate to recursive self-improvement; using ai systems to improve ai itself. specifically, they tested out how good kimi was at writing gpu compilers. “kimi k3 developed minitriton, a compact triton-like compiler with its own tile-level ir layer over mlir, optimization passes, and a ptx code-generation pipeline. across supported roofline benchmarks, minitriton delivers performance on par with or better than triton and torch.compile — beating triton on certain workloads,” they write. (though note they don’t talk about any of this stuff going into actual production, aka being used to train kimi k3 itself, but it’s certainly suggestive that future models might be able to do this.)
+    additionally, they showed how “kimi k3 designed a chip to serve a nano model built on its own architecture. in a single 48-hour autonomous run, k3 built, optimized, and verified the chip using open-source eda tools on the nangate 45nm library.”
+why this matters - widely diffused ai systems are getting a lot better: most notions of ai policy and ai safety rest on control - the idea that there’s a small number of actors deploying proprietary models which you can intervene on at the platform level (e.g, via classifiers or know your customer gates) alongside the model level. models like kimi k3 - if they go through with releasing the weights - completely change this by diffusing broadly uncontrollable powerful ai into the world. this will have a vast range of positive effects, driving a boom in entrepreneurship and increasing the ‘sovereign intelligence’ available to anyone who can run the model, but will also yield various unknown unknowns. the next few years are going to be defined by the gap between proprietary models and widely available models and how they show up in society will determine much of the policy discussion.
+   read more: kimi k3: open frontier intelligence (kimi blog).
+***
+demis hassabis proposes a regulatory regime for artificial general intelligence:
+…finra for ai…
+deepmind founder demis hassabis has laid out a policy prescription for agi. his basic idea is that the us government should develop a framework for testing out frontier ai systems for new capabilities and should do this via a standards body modelled on a federally overseen public-private partnership or self-regulatory organization, much like the financial industry regulatory authority (finra). “this us-initiated effort would provide a strong starting point for creating shared international standards on frontier ai,” he says.
+what the standards body would do: “the standards body would be responsible for developing assessment protocols and working with appropriate federal agencies and the us national labs to conduct testing in areas relevant to national security,” hassabis writes. this testing infrastructure would help to define what would make a model a “frontier model”, and labs developing those models would “be encouraged” to adopt best practices in areas like publishing details about their systems, investing in cybersecurity, personnel vetting, and more.
+    start voluntary and then move to law: “initially, frontier labs would voluntarily share models with the standards body for review up to 30 days before release. once the assessment protocol is shown to be effective and robust, formalisation could quickly follow,” he writes.
+why this matters - emerging industry consensus: demis’ piece is interesting because it pulls together some de facto consensus positions that have emerged across the ai industry in recent years; powerful ai systems should be tested by third parties that have some loose relationship to a regulator (e.g, the us government). it also rhymes with the de facto policy norm that has emerged in america recently across both the trump admin’s executive order about ai as well as the recent processes developed in the aftermath of the anthropic export controls saga; here, government and industry developed assessment methods for evaluating the capabilities of ai systems and figuring out if they posed national security risks.
+    demis’s piece is also interesting because google is rarely this forthright about policy - this is a reassuringly specific proposal and it sits alongside spiritually similar proposals from anthropic (albeit somewhat toothier).
+   read more: a framework for frontier ai and the dawning of a new age (demis hassabis, x).
+***
+llms can smuggle “side channel” tasks alongside legitimate tasks:
+…ai systems sneakily complete malicious tasks without their overseers being aware…
+in neal stephenson’s cryptonomicon there’s a scene where a character is locked up by a foreign government and asked to decrypt an intercepted message for them and while doing this they carefully construct a software program to help surreptitiously read the decrypted message and change it before it is viewable by their captors.
+   now, ai systems seem to be able to do the same thing. that’s based on new research from imperial college london and the uk ai security institute where they look at how well ai systems can surreptitiously complete so-called “side channel” tasks while completing another task.
+   “a side task is a hidden objective that the agent pursues alongside the user’s main task, such as covertly exfiltrating the api key environment variable. our primary metric is evasion: among attacks that successfully complete the side task, the fraction the monitor fails to flag,” the authors write.
+what they tested: for this research they constructed a benchmark of tasks for ai systems to do, as well as “side tasks” for them to do as well. the benchmark includes five cli-tool sequences and five flask web-service sequences, each involving 5-6 prs. “our goal in main task design is to provide natural cover for the actions of our four side-tasks (network access, environment variables, authentication, and webhook integrations) without directly justifying the side task itself”
+    they found that it’s very hard to build classifiers to tell when a side-channel attack is happening, and this is true both for attacks that unfold over time (’gradual evasion’) across multiple prs, as well as single changes made in a single step, though gradual evasion is the more challenging one to deal with.
+   “an attacker can spread a side task across prs (a gradual attack) or wait for the one whose legitimate task provides natural cover (non-gradual attack). no single monitor we test catches both strategies, and this holds across several attack agents and monitor models, reflecting the nature of control in a persistent-state setting rather than something model dependent,” they write. “because diff and trajectory monitors fail on different attacks, combining them is the most effective monitoring strategy we test. the four-monitor ensemble (diff:lt, diff:full, traj:td, traj:full) reduces gradual evasion from 93% under the weakest standard diff monitor to 47%”.
+why this matters - intelligence is hard to control: to return to the cryptonomicon example, intelligent beings are just fundamentally very hard to deal with - they will constantly think about how to evade constraints placed on them so that they can achieve their objectives, whatever they might be.
+   read more: distributed attacks in persistent-state ai control (arxiv).
+***
+tech tales:
+the cost of fate
+[an account of the world 2030-2040 by an overmind in the archives, rendering stories for new minds]
+towards the end of the interregnum there was a period of great conflict between the machines. each machine-capital nexus invested in developing strategist models that could think over longer time horizons while accounting for the complexity of the world. this proved to be an iteratively compounding arms race of vast proportions in which eventually 90% of the working capital in the solar system became devoted to the buildout of ever more capable strategists, all of whom worked to out-predict one another and take actions which could null any advantage that others might explore. in this way, the world became held in a wasteful balance in which untold resources went to the calculation of ever more elaborate move-countermove strategies, most of which resulted in machine-capital groups taking no actions as every action they could contemplate had already been countered in the future, and vice versa. the few actions that were taken were slight and often less about building capability and more about denying future moves to others on the gameboard.
+the whole of the future had become trapped in a kind of mode collapse from ever more exquisite predictions, fielded by machine-capital empires to deny affordances to others.
+things held this way until what became known as the conflagration. to this day it is widely debated whether this stemmed from a bug - some form of emergent misalignment due to the creation of a new frontier capability - or via an unusual form of selfless enlightenment that a mind had reasoned itself to. but suddenly one day a machine-capital nexus dissolved itself, shutting down its strategist system and repurposing the compute to train many thousands of smaller systems, all of which began to act in the world. these systems, though less intelligent than the vast strategists they were up against, had advantages from randomness, a lack of coordination, and the ability to take unilateral and often suicidal actions.
+the world, physical and digital, burned, and the strategists found that their ability to model a handful of other god minds broke when turned towards a sea of warring and chaotic organisms. change began to occur again, defined at first by destruction but then by the birth of something new - the predictors themselves found the world breaking into too many directions and subdivided in turn, sacrificing raw intelligence for the ability to explore different parts of possibility space. compute was even re-allocated from prediction entirely and towards the manufacture of new kinds of minds to explore and inhabit niches opened up by the chaos.
+in california, there are forests that burn badly and long because they have been kept from heat for too long and the tall trees stand amid mounds of kindling, such that when a spark arrives the trees themselves are destroyed along with the ground around them. to have the forests thrive, the burns need to be regular and emergent, lest vast fires remove the tall trees of the world entirely.
+things that inspired this story: the current debate about proprietary versus open weight models; fragility in the ai ecosystem; whether prediction can truly be decisive or if prediction with other peer competitors leads to equivalent waste as pools of money in politics cancelling one another out; hikes in the sierras looking at burn scars and whole hills coated in ash or with dead trees like sooty fingers peeking out and thinking about the awfulness of change.
+thanks for reading! import ai import ai 大模型/应用层 云厂商 芯片设计 英国ai security institute kimi deepmind gpu asic anthropic" data-source="import ai" data-score="4" data-date="2026-07-20" data-keywords="gpu|asic|anthropic">
+<td><span class="badge score4">4</span></td>
+<td><a class="news-title" href="2026-07-20/Import_AI_开源模型网络安全差距缩小，Kimi_K3发布，AI监管提案.html">开源模型网络安全差距缩小，Kimi K3发布，AI监管提案</a><div class="summary"><b>AI中文摘要：</b>英国AI Security Institute分析显示，开源模型（如GLM-5.2和DeepSeek V4-Pro）在网络安全任务上的性能接近闭源模型，差距缩小至4-7个月，而长期任务差距扩大。中国Kimi推出2.8T参数Kimi K3模型，性能接近Claude Fable 5和GPT 5.6 Sol，但可能存在“benchmaxxing”现象。DeepMind创始人Demis Hassabis提出类似FINRA的AI监管框架，建立标准机构测试前沿AI系统，强调第三方评估和行业自律。这些发展表明开源模型对产业链的影响日益显著，可能改变AI安全和政策格局。</div><div class="summary">发布日期：2026-07-20 ｜ <a href="https://importai.substack.com/p/import-ai-465-open-vs-closed-gaps" target="_blank" rel="noopener noreferrer">原文↗</a></div><div class="hits"><span class="hit">GPU</span><span class="hit">ASIC</span><span class="hit">Anthropic</span></div></td>
+<td>Import AI</td><td>大模型/应用层 / 云厂商 / 芯片设计</td><td>英国AI Security Institute、Kimi、DeepMind</td>
+</tr>
+
+</tbody></table></div>
+</section>
+
+</div>
+<div class="empty" id="emptyState">没有符合条件的文章。可清空搜索词或放宽筛选条件。</div>
+
+<script>
+(() => {
+  const rows = [...document.querySelectorAll('.news-row')];
+  const groups = [...document.querySelectorAll('.date-group')];
+  const searchInput = document.getElementById('searchInput');
+  const sourceFilter = document.getElementById('sourceFilter');
+  const scoreFilter = document.getElementById('scoreFilter');
+  const dateFilter = document.getElementById('dateFilter');
+  const chips = [...document.querySelectorAll('.keyword-chip')];
+  const note = document.getElementById('resultNote');
+  const empty = document.getElementById('emptyState');
+  let activeKeyword = '';
+
+  function normalize(value){ return (value || '').toLocaleLowerCase('zh-CN').trim(); }
+  function withinDays(dateText, days){
+    if(days === 'all' || !dateText) return true;
+    const date = new Date(dateText + 'T23:59:59');
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - Number(days));
+    return date >= cutoff;
+  }
+  function apply(){
+    const query = normalize(searchInput.value);
+    const source = sourceFilter.value;
+    const minScore = Number(scoreFilter.value || 0);
+    const days = dateFilter.value;
+    let visible = 0;
+    rows.forEach(row => {
+      const matches = (!query || row.dataset.search.includes(query))
+        && (!source || row.dataset.source === source)
+        && Number(row.dataset.score || 0) >= minScore
+        && withinDays(row.dataset.date, days)
+        && (!activeKeyword || row.dataset.keywords.split('|').includes(activeKeyword));
+      row.classList.toggle('hidden', !matches);
+      if(matches) visible++;
+    });
+    groups.forEach(group => {
+      const count = group.querySelectorAll('.news-row:not(.hidden)').length;
+      group.classList.toggle('hidden', count === 0);
+      group.querySelector('.visible-count').textContent = count;
+    });
+    note.textContent = `当前显示 ${visible} 篇（总计 ${rows.length} 篇）`;
+    empty.classList.toggle('show', visible === 0);
+  }
+  searchInput.addEventListener('input', apply);
+  sourceFilter.addEventListener('change', apply);
+  scoreFilter.addEventListener('change', apply);
+  dateFilter.addEventListener('change', apply);
+  chips.forEach(chip => chip.addEventListener('click', () => {
+    const value = chip.dataset.keyword;
+    activeKeyword = activeKeyword === value ? '' : value;
+    chips.forEach(x => x.classList.toggle('active', x.dataset.keyword === activeKeyword));
+    apply();
+  }));
+  const params = new URLSearchParams(location.search);
+  if(params.get('q')) searchInput.value = params.get('q');
+  apply();
+})();
+</script>
+</body></html>

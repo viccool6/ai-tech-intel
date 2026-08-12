@@ -1,0 +1,8 @@
+AI-Tech-Intel V4.4 正文抓取修复版
+
+1. Google News 中转链接先解析为媒体原文链接，再抓取正文。
+2. 增加正文完整性阈值，标题或短摘要不再标记为完整正文。
+3. 运行报告单列“完整正文不足”。
+4. 新增历史正文修复：
+   python3 run.py --refetch-content --refetch-only-summary
+5. 历史正文成功补抓后自动重新执行AI摘要、翻译和评分。

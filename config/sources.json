@@ -1,0 +1,84 @@
+{
+  "sources": [
+    {
+      "id": "openai_news",
+      "name": "OpenAI News",
+      "layer": "应用层大模型公司",
+      "type": "rss",
+      "url": "https://openai.com/news/rss.xml",
+      "enabled": true
+    },
+    {
+      "id": "deepmind_blog",
+      "name": "Google DeepMind Blog",
+      "layer": "应用层大模型公司",
+      "type": "rss",
+      "url": "https://deepmind.google/blog/rss.xml",
+      "enabled": true
+    },
+    {
+      "id": "nvidia_newsroom",
+      "name": "NVIDIA Newsroom",
+      "layer": "AI产业链上游",
+      "type": "rss",
+      "url": "https://nvidianews.nvidia.com/releases.xml",
+      "enabled": true
+    },
+    {
+      "id": "nvidia_blog",
+      "name": "NVIDIA Blog",
+      "layer": "AI产业链上游",
+      "type": "rss",
+      "url": "https://blogs.nvidia.com/feed/",
+      "enabled": true
+    },
+    {
+      "id": "the_decoder",
+      "name": "The Decoder",
+      "layer": "深度产业分析",
+      "type": "rss",
+      "url": "https://the-decoder.com/feed",
+      "enabled": true
+    },
+    {
+      "id": "import_ai",
+      "name": "Import AI",
+      "layer": "深度产业分析",
+      "type": "rss",
+      "url": "https://importai.substack.com/feed",
+      "enabled": true
+    },
+    {
+      "id": "google_hbm",
+      "name": "Google News · HBM",
+      "layer": "综合快讯兜底",
+      "type": "google_news",
+      "query": "HBM semiconductor when:1d",
+      "enabled": true
+    },
+    {
+      "id": "google_cowos",
+      "name": "Google News · CoWoS",
+      "layer": "综合快讯兜底",
+      "type": "google_news",
+      "query": "CoWoS advanced packaging when:1d",
+      "enabled": true
+    },
+    {
+      "id": "google_ai_capex",
+      "name": "Google News · AI CapEx",
+      "layer": "综合快讯兜底",
+      "type": "google_news",
+      "query": "AI datacenter CapEx when:1d",
+      "enabled": true
+    },
+    {
+      "id": "google_people",
+      "name": "Google News · 关键人物",
+      "layer": "关键人物动态",
+      "type": "google_news",
+      "query": "(\"Jensen Huang\" OR \"Sam Altman\" OR \"Dario Amodei\" OR \"Elon Musk\") AI when:1d",
+      "enabled": true
+    }
+  ]
+}

@@ -84,7 +84,10 @@ def main():
         print(f"已删除关键词：{a.remove_keyword}" if changed else f"未找到关键词：{a.remove_keyword}")
     rules=load_json(BASE/"config/scoring_rules.json")
     prompt=(BASE/"prompts/news_analysis.md").read_text(encoding="utf-8")
-    storage=Storage(BASE/"data/news.db"); html=HtmlGenerator(BASE/"templates",BASE/"档案库",keywords=keywords)
+    # Pass keywords into Storage so update_translation / save / update_ai_result
+    # can trigger _refresh_matched(id) automatically. Without this, translation
+    # writes leave matched_keywords stale until someone runs `python -m src.storage reindex`.
+    storage=Storage(BASE/"data/news.db",keywords=keywords); html=HtmlGenerator(BASE/"templates",BASE/"档案库",keywords=keywords)
     if a.add_keyword or a.remove_keyword:
         articles=html.rebuild_articles(storage.all(),storage)
         html.index(articles); storage.close(); logging.info("关键词已更新，详情页和索引已重建"); return 0

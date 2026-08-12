@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -258,6 +259,14 @@ class Storage:
 
     def _refresh_matched(self, article_id: int) -> None:
         if not self.keywords:
+            # Loud warning so callers who construct Storage without keywords
+            # notice they've disabled auto-refresh — the previous silent
+            # return caused translations to leave matched_keywords stale.
+            logging.warning(
+                "Storage._refresh_matched(id=%s) skipped: no keywords loaded. "
+                "Pass keywords=... to Storage() so translation/save writes stay consistent.",
+                article_id,
+            )
             return
         row = self.conn.execute("SELECT * FROM articles WHERE id=?", (article_id,)).fetchone()
         if not row:

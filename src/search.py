@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from datetime import date, timedelta
+from html import escape
 from typing import Iterable
 
 # Columns scanned by the LIKE fallback when a query is shorter than the FTS5
@@ -59,6 +61,29 @@ def _fts_query(q: str) -> str:
         if escaped:
             tokens.append(f'"{escaped}"')
     return " AND ".join(tokens)
+
+
+def _like_snippet(text: str, query: str, window: int = 60) -> str:
+    """Case-insensitive substring highlight for LIKE-fallback rows.
+
+    Returns HTML-escaped text around the first hit with <mark> around every
+    occurrence of the query in the window. Returns '' when the query isn't in
+    the text so the caller can try the next column.
+    """
+    if not text or not query:
+        return ""
+    pos = text.lower().find(query.lower())
+    if pos < 0:
+        return ""
+    start = max(0, pos - window)
+    end = min(len(text), pos + len(query) + window)
+    escaped = escape(text[start:end])
+    escaped_q = escape(query)
+    pattern = re.compile(re.escape(escaped_q), re.IGNORECASE)
+    highlighted = pattern.sub(lambda m: f"<mark>{m.group(0)}</mark>", escaped)
+    prefix = "…" if start > 0 else ""
+    suffix = "…" if end < len(text) else ""
+    return prefix + highlighted + suffix
 
 
 def _hydrate(row: sqlite3.Row) -> dict:
@@ -122,10 +147,20 @@ def search_articles(
             ["a.id IN (SELECT rowid FROM articles_fts WHERE articles_fts MATCH ?)"] + filter_clauses
         )
         base_params = [match_expr] + filter_params
+        # Snippet fallback order: summary_cn (col 2) → article_text (col 3) → title_cn (col 0).
+        # Never draw the snippet from matched_keywords (col 8), otherwise users see the
+        # internal |kw|kw| serialization on screen. When a column has no match, snippet()
+        # still returns leading tokens without <mark>; instr() picks the first column that
+        # actually highlighted the query.
         select_sql = (
             "SELECT a.*, "
-            "(SELECT snippet(articles_fts, -1, '<mark>', '</mark>', '…', 12) "
-            " FROM articles_fts WHERE articles_fts MATCH ? AND rowid=a.id) AS snippet, "
+            "(SELECT iif(instr(s_sum,'<mark>'), s_sum, "
+            "            iif(instr(s_body,'<mark>'), s_body, s_title)) "
+            " FROM (SELECT "
+            "   snippet(articles_fts, 2, '<mark>', '</mark>', '…', 12) AS s_sum, "
+            "   snippet(articles_fts, 3, '<mark>', '</mark>', '…', 12) AS s_body, "
+            "   snippet(articles_fts, 0, '<mark>', '</mark>', '…', 12) AS s_title "
+            "  FROM articles_fts WHERE articles_fts MATCH ? AND rowid=a.id)) AS snippet, "
             "(SELECT bm25(articles_fts) FROM articles_fts WHERE articles_fts MATCH ? AND rowid=a.id) AS rank "
             f"FROM articles a WHERE {base_where} ORDER BY rank LIMIT ? OFFSET ?"
         )
@@ -149,14 +184,37 @@ def search_articles(
     offset = (page - 1) * per_page
     rows = db.execute(select_sql, select_params_prefix + [per_page, offset]).fetchall()
 
+    hydrated = [_hydrate(r) for r in rows]
+    if mode == "like":
+        for item in hydrated:
+            for col in ("summary_cn", "article_text", "title_cn"):
+                snip = _like_snippet(item.get(col) or "", q)
+                if snip:
+                    item["snippet"] = snip
+                    break
+
     return {
         "total": total,
-        "rows": [_hydrate(r) for r in rows],
+        "rows": hydrated,
         "page": page,
         "pages": pages,
         "degraded": degraded,
         "mode": mode,
     }
+
+
+def total_articles(db: sqlite3.Connection) -> int:
+    return db.execute("SELECT COUNT(*) FROM articles").fetchone()[0]
+
+
+def latest_archived_at(db: sqlite3.Connection) -> str:
+    """Newest archived_at across all rows, or empty when the table is empty.
+
+    archived_at is the CURRENT_TIMESTAMP the row was written, which reflects
+    the last successful ingestion — what the top-of-page 「最近更新」 should show.
+    """
+    row = db.execute("SELECT MAX(archived_at) FROM articles").fetchone()
+    return (row[0] or "") if row else ""
 
 
 def list_sources(db: sqlite3.Connection) -> list[str]:

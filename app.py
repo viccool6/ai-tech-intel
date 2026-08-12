@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime
 from pathlib import Path
 
 from flask import Flask, g, render_template, request, url_for
 
 from src.keywords import load_keywords
-from src.search import keyword_counts, list_sources, search_articles
+from src.search import (
+    keyword_counts,
+    latest_archived_at,
+    list_sources,
+    search_articles,
+    total_articles,
+)
 
 BASE = Path(__file__).resolve().parent
 
@@ -65,7 +70,8 @@ def create_app() -> Flask:
             degraded=result["degraded"], mode=result["mode"],
             sources=list_sources(db),
             keyword_stats=keyword_counts(db, keywords),
-            updated=datetime.now().astimezone(),
+            total_all=total_articles(db),
+            latest_updated=latest_archived_at(db),
         )
 
     @app.template_global()

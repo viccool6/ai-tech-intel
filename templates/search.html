@@ -52,7 +52,7 @@ mark{background:#fff2a8;padding:0 1px}
 </head>
 <body>
 <h1>AI科技产业情报 · 检索库</h1>
-<div class="meta">最近更新：{{ updated.strftime("%Y-%m-%d %H:%M") }} ｜ 累计归档：{{ total }}篇{% if q or source or min_score or (days and days != 'all') or active_keyword %}（当前条件下）{% endif %}</div>
+<div class="meta">最近更新：{{ latest_updated[:16].replace('T',' ') if latest_updated else '—' }} ｜ 累计归档：{{ total_all }} 篇{% if total != total_all %} · 当前条件 {{ total }} 篇{% endif %}</div>
 
 <form class="panel" method="get" action="{{ url_for('search') }}">
   <div class="search-row">
@@ -100,7 +100,7 @@ mark{background:#fff2a8;padding:0 1px}
 </form>
 
 {% if degraded %}
-<div class="banner">⚠ 检索词短于 3 个字符，已改用全表模糊匹配（覆盖标题/摘要/正文/信源/公司/标签/关键词）。这种模式没有 FTS 排名和高亮，速度也慢于 FTS，但对"液冷"这类 2 字中文词是必需的兜底。</div>
+<div class="banner">「{{ q }}」不足 3 个字，已改用模糊匹配，结果未按相关度排序。</div>
 {% endif %}
 
 {% if rows %}

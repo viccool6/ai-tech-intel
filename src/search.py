@@ -24,6 +24,21 @@ _DISPLAY_DATE_EXPR = (
 
 _SOURCE_EXPR = "COALESCE(NULLIF(a.publisher,''), NULLIF(a.source_name,''), '未知信源')"
 
+# Sentinels for FTS snippet highlighting. SQLite's snippet() returns the
+# column text verbatim (no HTML escaping), so if we hand it '<mark>' and
+# the article body contains '<script>', the template's |safe filter would
+# render live HTML. Use control characters that cannot appear in real text
+# and that html.escape() leaves untouched, then swap them for <mark></mark>
+# AFTER escaping. _like_snippet() uses the same escape-then-inject pattern.
+_MARK_OPEN = "\x02"
+_MARK_CLOSE = "\x03"
+
+
+def _sanitize_fts_snippet(text: str) -> str:
+    if not text:
+        return ""
+    return escape(text).replace(_MARK_OPEN, "<mark>").replace(_MARK_CLOSE, "</mark>")
+
 
 def _build_filters(source: str, min_score: int, days: str, keyword: str) -> tuple[list[str], list]:
     clauses: list[str] = []
@@ -157,14 +172,16 @@ def search_articles(
         # still returns leading tokens without <mark>; instr() picks the first column that
         # actually highlighted the query.
         fts_order = "ORDER BY rank" if effective_sort == "relevance" else order_by_date
+        # Sentinels here — HTML injection is guarded by _sanitize_fts_snippet
+        # in Python. See _MARK_OPEN / _MARK_CLOSE comment above.
         select_sql = (
             "SELECT a.*, "
-            "(SELECT iif(instr(s_sum,'<mark>'), s_sum, "
-            "            iif(instr(s_body,'<mark>'), s_body, s_title)) "
+            f"(SELECT iif(instr(s_sum, '{_MARK_OPEN}'), s_sum, "
+            f"            iif(instr(s_body, '{_MARK_OPEN}'), s_body, s_title)) "
             " FROM (SELECT "
-            "   snippet(articles_fts, 2, '<mark>', '</mark>', '…', 12) AS s_sum, "
-            "   snippet(articles_fts, 3, '<mark>', '</mark>', '…', 12) AS s_body, "
-            "   snippet(articles_fts, 0, '<mark>', '</mark>', '…', 12) AS s_title "
+            f"   snippet(articles_fts, 2, '{_MARK_OPEN}', '{_MARK_CLOSE}', '…', 12) AS s_sum, "
+            f"   snippet(articles_fts, 3, '{_MARK_OPEN}', '{_MARK_CLOSE}', '…', 12) AS s_body, "
+            f"   snippet(articles_fts, 0, '{_MARK_OPEN}', '{_MARK_CLOSE}', '…', 12) AS s_title "
             "  FROM articles_fts WHERE articles_fts MATCH ? AND rowid=a.id)) AS snippet, "
             "(SELECT bm25(articles_fts) FROM articles_fts WHERE articles_fts MATCH ? AND rowid=a.id) AS rank "
             f"FROM articles a WHERE {base_where} {fts_order} LIMIT ? OFFSET ?"
@@ -190,7 +207,10 @@ def search_articles(
     rows = db.execute(select_sql, select_params_prefix + [per_page, offset]).fetchall()
 
     hydrated = [_hydrate(r) for r in rows]
-    if mode == "like":
+    if mode == "fts":
+        for item in hydrated:
+            item["snippet"] = _sanitize_fts_snippet(item.get("snippet") or "")
+    elif mode == "like":
         for item in hydrated:
             for col in ("summary_cn", "article_text", "title_cn"):
                 snip = _like_snippet(item.get(col) or "", q)

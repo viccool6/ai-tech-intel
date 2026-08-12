@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sqlite3
 from pathlib import Path
 
@@ -139,4 +140,6 @@ def create_app() -> Flask:
 
 
 if __name__ == "__main__":
-    create_app().run(host="127.0.0.1", port=5000, debug=True)
+    # Werkzeug's debugger exposes remote code execution via the interactive
+    # traceback console — must stay opt-in and off by default.
+    create_app().run(host="127.0.0.1", port=5000, debug=os.getenv("FLASK_DEBUG") == "1")

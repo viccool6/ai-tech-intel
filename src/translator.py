@@ -122,8 +122,11 @@ def _batch(paragraphs: list[str], max_chars: int) -> list[list[str]]:
     return batches
 
 
-def _call_api(batch: list[str], key: str, base: str, model: str, timeout: int, retries: int) -> list[str]:
-    """Translate one batch. Raises RuntimeError on final failure."""
+def _call_api(batch: list[str], key: str, base: str, model: str, timeout: int, retries: int) -> tuple[list[str], dict]:
+    """Translate one batch. Returns (paragraphs, usage) where usage is
+    {'prompt_tokens': int, 'completion_tokens': int, 'total_tokens': int}
+    (all zero if the provider didn't return usage). Raises RuntimeError on
+    final failure."""
     headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
     messages = [
         {"role": "system", "content": _SYSTEM_PROMPT},
@@ -135,6 +138,11 @@ def _call_api(batch: list[str], key: str, base: str, model: str, timeout: int, r
         "temperature": float(os.getenv("TRANSLATE_TEMPERATURE", "0.1")),
         "response_format": {"type": "json_object"},
     }
+    # DeepSeek V4 defaults thinking ON, and thinking tokens count as output
+    # billing even for deterministic tasks like translation. Explicitly disable
+    # unless TRANSLATE_THINKING=true is set (opt-in for A/B or debugging).
+    if not env_bool("TRANSLATE_THINKING", False):
+        payload["thinking"] = {"type": "disabled"}
     errors: list[str] = []
     for attempt in range(retries + 1):
         try:
@@ -147,7 +155,8 @@ def _call_api(batch: list[str], key: str, base: str, model: str, timeout: int, r
                 time.sleep(2 ** attempt + 1)
                 continue
             response.raise_for_status()
-            content = response.json()["choices"][0]["message"]["content"]
+            data = response.json()
+            content = data["choices"][0]["message"]["content"]
             parsed = json.loads(content)
             paragraphs = parsed.get("paragraphs")
             if not isinstance(paragraphs, list):
@@ -155,7 +164,13 @@ def _call_api(batch: list[str], key: str, base: str, model: str, timeout: int, r
             paragraphs = [str(p).strip() for p in paragraphs]
             if len(paragraphs) != len(batch):
                 raise ValueError(f"段数不一致：期望 {len(batch)}，实际 {len(paragraphs)}")
-            return paragraphs
+            u = data.get("usage") or {}
+            usage = {
+                "prompt_tokens": int(u.get("prompt_tokens") or 0),
+                "completion_tokens": int(u.get("completion_tokens") or 0),
+                "total_tokens": int(u.get("total_tokens") or 0),
+            }
+            return paragraphs, usage
         except Exception as exc:
             errors.append(f"{type(exc).__name__}: {exc}")
             logging.warning("翻译失败（第 %s/%s 次）：%s", attempt + 1, retries + 1, errors[-1])
@@ -195,21 +210,30 @@ def translate_text(text: str, *, force_no_ai: bool = False) -> dict:
         return {"article_text_cn": "", "translate_status": "skipped", "translate_model": model, "translate_error": "空正文"}
 
     batches = _batch(paragraphs, max_chars)
-    logging.info("翻译：%s 段，切成 %s 批", len(paragraphs), len(batches))
+    thinking_state = "ON" if env_bool("TRANSLATE_THINKING", False) else "OFF"
+    logging.info("翻译：%s 段，切成 %s 批（thinking=%s，model=%s）",
+                 len(paragraphs), len(batches), thinking_state, model)
 
     out_paragraphs: list[str] = []
     errors: list[str] = []
     ok_batches = 0
+    total_prompt = total_completion = 0
     for i, batch in enumerate(batches, 1):
         try:
-            translated = _call_api(batch, key, base, model, timeout, retries)
+            translated, usage = _call_api(batch, key, base, model, timeout, retries)
             out_paragraphs.extend(translated)
             ok_batches += 1
-            logging.info("翻译批次 %s/%s 完成（%s 段）", i, len(batches), len(batch))
+            total_prompt += usage["prompt_tokens"]
+            total_completion += usage["completion_tokens"]
+            logging.info("翻译批次 %s/%s 完成（%s 段｜prompt=%s / completion=%s tokens）",
+                         i, len(batches), len(batch), usage["prompt_tokens"], usage["completion_tokens"])
         except Exception as exc:
             errors.append(f"batch {i}: {exc}")
             logging.warning("翻译批次 %s/%s 放弃：%s", i, len(batches), exc)
             out_paragraphs.extend([_PLACEHOLDER] * len(batch))
+
+    logging.info("翻译 token 合计：prompt=%s / completion=%s / total=%s",
+                 total_prompt, total_completion, total_prompt + total_completion)
 
     if ok_batches == 0:
         return {"article_text_cn": "", "translate_status": "failed", "translate_model": model, "translate_error": (" | ".join(errors))[-2000:]}

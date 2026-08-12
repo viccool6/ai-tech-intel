@@ -105,6 +105,11 @@ def analyze(article: dict, rules: dict, prompt_template: str, force_no_ai: bool 
         "messages": messages,
         "temperature": float(os.getenv("AI_TEMPERATURE", "0.1")),
     }
+    # DeepSeek V4 defaults thinking ON, and thinking tokens count as output
+    # billing. Summarization/scoring is structured extraction, not reasoning
+    # — disable unless AI_THINKING=true is set (opt-in for A/B or debugging).
+    if not env_bool("AI_THINKING", False):
+        payload["thinking"] = {"type": "disabled"}
     if env_bool("AI_USE_JSON_SCHEMA", True):
         payload["response_format"] = {
             "type": "json_schema",
@@ -133,6 +138,13 @@ def analyze(article: dict, rules: dict, prompt_template: str, force_no_ai: bool 
             response.raise_for_status()
             data = response.json()
             content = data["choices"][0]["message"]["content"]
+            u = data.get("usage") or {}
+            logging.info(
+                "AI 摘要 tokens：prompt=%s / completion=%s / total=%s（thinking=%s）",
+                u.get("prompt_tokens", 0), u.get("completion_tokens", 0),
+                u.get("total_tokens", 0),
+                "ON" if env_bool("AI_THINKING", False) else "OFF",
+            )
             out = extract_json(content)
             out["score"] = max(1, min(5, int(out.get("score", 1))))
             out["industry_tags"] = list(dict.fromkeys(out.get("industry_tags", [])))[:6]

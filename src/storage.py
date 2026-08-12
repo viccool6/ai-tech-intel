@@ -7,6 +7,7 @@ from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Iterable
 
+from .config import SCORE_THRESHOLD_FULL_BODY
 from .keywords import matched_keywords as compute_matched_keywords
 from .utils import normalize_url
 
@@ -237,8 +238,11 @@ class Storage:
         if article_id is not None:
             rows = self.conn.execute("SELECT * FROM articles WHERE id=?", (article_id,)).fetchall()
         else:
+            # Threshold interpolated from the shared constant (Python int,
+            # not user input — safe for f-string) so a config bump lifts both
+            # translation eligibility and the detail-page body gate together.
             where = (
-                "COALESCE(score,0) >= 4 AND fetch_status='success' "
+                f"COALESCE(score,0) >= {SCORE_THRESHOLD_FULL_BODY} AND fetch_status='success' "
                 "AND LENGTH(COALESCE(article_text,'')) > 500"
             )
             if only_missing:

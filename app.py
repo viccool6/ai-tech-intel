@@ -6,6 +6,7 @@ from pathlib import Path
 
 from flask import Flask, abort, g, render_template, request, url_for
 
+from src.config import SCORE_THRESHOLD_FULL_BODY
 from src.keywords import load_keywords
 from src.search import (
     article_paragraphs,
@@ -119,7 +120,10 @@ def create_app() -> Flask:
         view = request.args.get("view", "both")
         if view not in ("both", "cn"):
             view = "both"
-        return render_template("article.html", article=art, view=view)
+        return render_template(
+            "article.html", article=art, view=view,
+            score_threshold_full_body=SCORE_THRESHOLD_FULL_BODY,
+        )
 
     @app.template_global()
     def page_url(**overrides):

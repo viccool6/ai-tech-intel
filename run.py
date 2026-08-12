@@ -4,6 +4,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from src.ai_client import analyze
 from src.article_parser import extract_article
+from src.config import SCORE_THRESHOLD_FULL_BODY
 from src.fetchers import fetch_source
 from src.html_generator import HtmlGenerator
 from src.keywords import add_keyword, load_keywords, remove_keyword
@@ -42,10 +43,11 @@ def args():
 
 
 def _should_translate(item: dict) -> bool:
-    """Auto-translation gate: score>=4, fetch succeeded, body long enough.
-    Kept here (not in translator.py) because translator only knows text."""
+    """Auto-translation gate: score>=threshold, fetch succeeded, body long
+    enough. Threshold sourced from src.config so it stays in lockstep with
+    the detail-page body gate."""
     return (
-        int(item.get("score") or 0) >= 4
+        int(item.get("score") or 0) >= SCORE_THRESHOLD_FULL_BODY
         and item.get("fetch_status") == "success"
         and len(item.get("article_text") or "") > 500
     )

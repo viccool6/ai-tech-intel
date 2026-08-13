@@ -6,7 +6,9 @@ TAGS={"存储":["hbm","dram","nand","memory"],"先进封装":["cowos","advanced 
 def fallback(title: str, text: str) -> dict:
     blob = f"{title}\n{text}".lower()
     score = 2
-    if any(k in blob for k in ["export control","capex","billion","fab expansion","扩产","资本开支"]): score=5
+    # 5 分只留真正表示产业动向的词：出口管制/资本开支/扩产。"billion" 之类
+    # 纯金额词删掉——英文财经稿里随口提市值就会命中，太宽松。
+    if any(k in blob for k in ["export control","capex","fab expansion","扩产","资本开支","出口管制"]): score=5
     elif any(k in blob for k in ["hbm","cowos","cpo","advanced packaging","supply chain"]): score=4
     elif any(k in blob for k in ["launch","release","earnings","model","product"]): score=3
     companies=[n for n,ws in COMPANIES.items() if any(w in blob for w in ws)]

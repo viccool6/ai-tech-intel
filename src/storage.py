@@ -254,8 +254,12 @@ class Storage:
             # Threshold interpolated from the shared constant (Python int,
             # not user input — safe for f-string) so a config bump lifts both
             # translation eligibility and the detail-page body gate together.
+            # ai_status='success' excludes rules-fallback rows: their score
+            # comes from keyword heuristics and shouldn't spend translation
+            # budget. Keeps this in lockstep with run.py._should_translate.
             where = (
                 f"COALESCE(score,0) >= {SCORE_THRESHOLD_FULL_BODY} AND fetch_status='success' "
+                "AND ai_status='success' "
                 "AND LENGTH(COALESCE(article_text,'')) > 500"
             )
             if only_missing:

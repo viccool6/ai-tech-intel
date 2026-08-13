@@ -71,11 +71,15 @@ def _guard_destructive_no_ai(a) -> str | None:
 
 def _should_translate(item: dict) -> bool:
     """Auto-translation gate: score>=threshold, fetch succeeded, body long
-    enough. Threshold sourced from src.config so it stays in lockstep with
-    the detail-page body gate."""
+    enough, AND AI actually scored (not rules-fallback). The ai_status
+    check keeps us from spending translation budget on articles whose
+    score itself is unreliable — a 5 from the keyword rules is not the
+    same signal as a 5 from the model. Threshold sourced from src.config
+    so it stays in lockstep with the detail-page body gate."""
     return (
         int(item.get("score") or 0) >= SCORE_THRESHOLD_FULL_BODY
         and item.get("fetch_status") == "success"
+        and item.get("ai_status") == "success"
         and len(item.get("article_text") or "") > 500
     )
 

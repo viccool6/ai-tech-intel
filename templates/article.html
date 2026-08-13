@@ -113,7 +113,6 @@ summary{cursor:pointer;font-weight:700}
 {% if article.main_image %}<img src="{{ article.main_image }}" alt="文章主图">{% endif %}
 
 {% if (article.score or 0) >= score_threshold_full_body %}
-<h2>抓取到的正文</h2>
 {% if article.paragraphs %}
   {% if article.paragraphs_cn %}
   <div class="view-toggle">

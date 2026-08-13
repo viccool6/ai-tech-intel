@@ -17,10 +17,18 @@ Type=oneshot
 User=<SYSTEM_USER>
 Group=<SYSTEM_USER>
 WorkingDirectory=<APP_PATH>
-EnvironmentFile=<APP_PATH>/.env
+# .env is loaded by run.py via python-dotenv (see load_dotenv() at the top
+# of run.py). Systemd's EnvironmentFile parser rejects values with
+# unquoted spaces/semicolons/parens (e.g. USER_AGENT), so we let dotenv
+# handle it. One parser end-to-end.
 # --hours 24 matches the timer cadence; adjust if you change OnCalendar.
 ExecStart=<APP_PATH>/.venv/bin/python run.py --hours 24
-# Prevent overlapping runs if a previous one hasn't finished yet.
+# Cap a single run at 45 min — if the fetch/AI/translate cycle hangs,
+# systemd kills the process. This has NOTHING to do with overlap
+# prevention: systemd already refuses to re-fire a unit while it's
+# active/starting, and the timer silently skips triggers that arrive
+# during an ongoing run. This setting exists purely so a stuck HTTP
+# call or infinite loop doesn't sit forever.
 TimeoutStartSec=45min
 
 # Same hardening posture as the web unit.
@@ -28,4 +36,4 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=<APP_PATH>/data <APP_PATH>/档案库
+ReadWritePaths=<APP_PATH>/data

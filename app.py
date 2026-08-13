@@ -4,7 +4,15 @@ import os
 import sqlite3
 from pathlib import Path
 
+from dotenv import load_dotenv
 from flask import Flask, abort, g, render_template, request, url_for
+
+# Load .env once at import time so app.py and gunicorn get the same view
+# of the environment as run.py already does. This deliberately replaces the
+# systemd EnvironmentFile approach — python-dotenv is permissive about
+# spaces/parens/semicolons in values (e.g. our USER_AGENT string), whereas
+# systemd's parser rejects them without quoting.
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 from src.config import SCORE_THRESHOLD_FULL_BODY
 from src.keywords import load_keywords

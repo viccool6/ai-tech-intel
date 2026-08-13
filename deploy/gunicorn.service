@@ -17,7 +17,11 @@ Type=simple
 User=<SYSTEM_USER>
 Group=<SYSTEM_USER>
 WorkingDirectory=<APP_PATH>
-EnvironmentFile=<APP_PATH>/.env
+# .env is loaded by app.py via python-dotenv (see load_dotenv() at the top
+# of app.py). Do NOT re-enable EnvironmentFile here: systemd's parser is
+# stricter than dotenv's — values with unquoted spaces/semicolons/parens
+# (our USER_AGENT line for example) would either be rejected or truncated.
+# Keeping loading in one place = one parser to reason about.
 # 2 workers = enough for a private, small-audience site; bump if traffic grows.
 ExecStart=<APP_PATH>/.venv/bin/gunicorn \
     --workers 2 \
@@ -34,8 +38,12 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=read-only
-# Everything else on disk is off-limits; opens back up just data/ and 档案库/.
-ReadWritePaths=<APP_PATH>/data <APP_PATH>/档案库
+# Everything else on disk is off-limits; opens back up just data/ where the
+# SQLite DB + WAL/SHM sidecars + logs live. 档案库/ is intentionally NOT
+# listed — after round-5A stripped html_generator, nothing writes there,
+# and adding a missing path here would fail unit startup under
+# ProtectSystem=strict.
+ReadWritePaths=<APP_PATH>/data
 
 [Install]
 WantedBy=multi-user.target

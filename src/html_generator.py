@@ -43,7 +43,7 @@ class HtmlGenerator:
         prepared["matched_keywords"] = matched_keywords(prepared, self.keywords)
         prepared["display_date"] = date
         prepared["ai_succeeded"] = prepared.get("ai_status") == "success"
-        prepared["date_is_verified"] = prepared.get("date_source") in {"jsonld.datePublished", "meta.article:published_time", "visible.labelled_publish_date", "webpage"} and bool(prepared.get("published_at"))
+        prepared["date_is_verified"] = prepared.get("date_source") in {"jsonld.datePublished", "meta.article:published_time", "visible.labelled_publish_date", "webpage", "rss.trusted"} and bool(prepared.get("published_at"))
         (directory / name).write_text(
             self.env.get_template("article_archive.html").render(article=prepared), encoding="utf-8"
         )
@@ -71,7 +71,7 @@ class HtmlGenerator:
             article["matched_keywords"] = matched_keywords(article, self.keywords)
             article["display_date"] = self._display_date(article)
             article["ai_succeeded"] = article.get("ai_status") == "success"
-            article["date_is_verified"] = article.get("date_source") in {"jsonld.datePublished", "meta.article:published_time", "visible.labelled_publish_date", "webpage"} and bool(article.get("published_at"))
+            article["date_is_verified"] = article.get("date_source") in {"jsonld.datePublished", "meta.article:published_time", "visible.labelled_publish_date", "webpage", "rss.trusted"} and bool(article.get("published_at"))
             article["search_blob"] = " ".join(
                 str(value)
                 for value in [

@@ -247,6 +247,12 @@ def main():
             if parsed.get("published_at"):
                 item["published_at"]=parsed["published_at"]
                 item["date_source"]=parsed.get("date_source") or "webpage"
+            elif source.get("trust_rss_date") and item.get("rss_published_at"):
+                # Whitelist: for known-reliable feeds (openai_news/deepmind_blog/nvidia_blog)
+                # we promote the RSS date when page fetch didn't yield one. Marked with a
+                # distinct date_source so we can audit which rows came in via this path.
+                item["published_at"]=item["rss_published_at"]
+                item["date_source"]="rss.trusted"
             else:
                 item["published_at"]=""
                 item["date_source"]="rss" if item.get("rss_published_at") else "unknown"

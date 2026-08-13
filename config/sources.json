@@ -6,7 +6,8 @@
       "layer": "应用层大模型公司",
       "type": "rss",
       "url": "https://openai.com/news/rss.xml",
-      "enabled": true
+      "enabled": true,
+      "trust_rss_date": true
     },
     {
       "id": "deepmind_blog",
@@ -14,7 +15,8 @@
       "layer": "应用层大模型公司",
       "type": "rss",
       "url": "https://deepmind.google/blog/rss.xml",
-      "enabled": true
+      "enabled": true,
+      "trust_rss_date": true
     },
     {
       "id": "nvidia_newsroom",
@@ -30,7 +32,8 @@
       "layer": "AI产业链上游",
       "type": "rss",
       "url": "https://blogs.nvidia.com/feed/",
-      "enabled": true
+      "enabled": true,
+      "trust_rss_date": true
     },
     {
       "id": "the_decoder",

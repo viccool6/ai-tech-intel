@@ -118,6 +118,7 @@ def _hydrate(row: sqlite3.Row) -> dict:
     item["date_is_verified"] = item.get("date_source") in {
         "jsonld.datePublished", "meta.article:published_time",
         "visible.labelled_publish_date", "webpage",
+        "rss.trusted",
     } and bool(item.get("published_at"))
     return item
 

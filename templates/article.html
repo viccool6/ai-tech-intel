@@ -80,10 +80,15 @@ summary{cursor:pointer;font-weight:700}
 <div class="source-card">
   <div class="source-grid">
     <div class="label">真实来源</div><div>{{ article.publisher or article.source_name or "未识别" }}</div>
-    <div class="label">作者</div><div>{{ article.author or "未披露/未识别" }}</div>
+    <div class="label">作者</div>
+    <div>
+      {% if article.author_status == 'named' and article.author %}{{ article.author }}
+      {% elif article.author_status == 'institutional' %}{{ article.publisher or article.source_name or "未知机构" }}（机构发布）
+      {% else %}未识别{% endif %}
+    </div>
     {% if article.date_is_verified %}
       <div class="label">发布日期</div>
-      <div>{{ article.published_at[:10] }}<span class="date-info" data-info><svg class="date-info-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="4.7" r="0.9" fill="currentColor"/><path d="M8 7.4V11.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span class="date-info-tip">该日期取自原文网页的发布时间标记，是新闻的实际发布日。</span></span></div>
+      <div>{{ article.published_at[:10] }}<span class="date-info" data-info><svg class="date-info-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="4.7" r="0.9" fill="currentColor"/><path d="M8 7.4V11.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span class="date-info-tip">{% if article.date_source == 'rss.trusted' %}该日期来自信源官方 RSS 的发布时间。{% else %}该日期取自原文网页的发布时间标记，是新闻的实际发布日。{% endif %}</span></span></div>
     {% elif article.display_date %}
       <div class="label">归档日期</div>
       <div>{{ article.display_date }}（来源未核实）<span class="date-info" data-info><svg class="date-info-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="4.7" r="0.9" fill="currentColor"/><path d="M8 7.4V11.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span class="date-info-tip">本篇信源未提供可靠的发布时间，精确时间请点原文链接核对。</span></span></div>

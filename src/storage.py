@@ -25,7 +25,8 @@ CREATE TABLE IF NOT EXISTS articles(
  archive_file TEXT, fetch_status TEXT, fetch_error TEXT,
  ai_status TEXT, ai_model TEXT, ai_error TEXT, link_resolver TEXT,
  matched_keywords TEXT,
- article_text_cn TEXT, translate_status TEXT, translate_model TEXT
+ article_text_cn TEXT, translate_status TEXT, translate_model TEXT,
+ author_status TEXT
 );
 """
 
@@ -40,6 +41,7 @@ MIGRATIONS = {
     "fetch_error": "TEXT", "ai_status": "TEXT", "ai_model": "TEXT", "ai_error": "TEXT",
     "link_resolver": "TEXT", "matched_keywords": "TEXT",
     "article_text_cn": "TEXT", "translate_status": "TEXT", "translate_model": "TEXT",
+    "author_status": "TEXT",
 }
 
 # Columns mirrored into the FTS5 shadow table. matched_keywords is included so
@@ -93,6 +95,16 @@ class Storage:
             # V3 stored the feed timestamp in published_at. Preserve it as RSS date and
             # require webpage verification before calling anything the true publication date.
             self.conn.execute("UPDATE articles SET rss_published_at=published_at, published_at='', date_source='rss' WHERE COALESCE(published_at,'')<>''")
+        # One-shot backfill for author_status introduced later — no-op once every
+        # row is categorized. Named > (fetch OK + no author) institutional > rest unknown.
+        self.conn.execute("""
+            UPDATE articles SET author_status = CASE
+                WHEN COALESCE(author,'') <> '' THEN 'named'
+                WHEN fetch_status = 'success' THEN 'institutional'
+                ELSE 'unknown'
+            END
+            WHERE COALESCE(author_status,'') = ''
+        """)
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_score ON articles(score)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_published ON articles(published_at)")
         self.conn.execute(FTS_SCHEMA)
@@ -157,6 +169,7 @@ class Storage:
             "fetch_status", "fetch_error", "ai_status", "ai_model", "ai_error", "link_resolver",
             "matched_keywords",
             "article_text_cn", "translate_status", "translate_model",
+            "author_status",
         ]
         values = []
         for field in fields:
@@ -354,6 +367,27 @@ class Storage:
         self.conn.execute("INSERT INTO articles_fts(articles_fts) VALUES('rebuild')")
         self.conn.commit()
 
+    def promote_rss_dates(self, source_ids: Iterable[str]) -> int:
+        """One-off backfill: for the given trusted source_ids, promote
+        rss_published_at → published_at (setting date_source='rss.trusted')
+        on rows whose page fetch had left published_at empty. Returns the
+        number of rows touched. Ingest-time promotion happens in run.py; this
+        method covers historical rows written before the whitelist existed."""
+        ids = list(source_ids)
+        if not ids:
+            return 0
+        placeholders = ",".join("?" for _ in ids)
+        cursor = self.conn.execute(
+            f"UPDATE articles SET published_at = rss_published_at, "
+            f"date_source = 'rss.trusted' "
+            f"WHERE source_id IN ({placeholders}) "
+            f"  AND COALESCE(published_at,'') = '' "
+            f"  AND COALESCE(rss_published_at,'') <> ''",
+            ids,
+        )
+        self.conn.commit()
+        return cursor.rowcount
+
     def reindex(self) -> tuple[int, int]:
         """Full safe backfill: drop triggers → rematch matched_keywords →
         rebuild FTS → recreate triggers. Returns (rows_rematched, fts_row_count).
@@ -387,6 +421,12 @@ def _cli() -> int:
         if action == "reindex":
             touched, fts_count = storage.reindex()
             print(f"reindex done: rematched {touched} rows, FTS shadow now has {fts_count} rows")
+        elif action == "promote-rss":
+            import json as _json
+            sources = _json.loads((base / "config/sources.json").read_text(encoding="utf-8"))
+            trusted = [s["id"] for s in sources.get("sources", []) if s.get("trust_rss_date")]
+            n = storage.promote_rss_dates(trusted)
+            print(f"promote-rss done: {n} row(s) promoted; whitelist = {trusted}")
         else:
             print(f"unknown action: {action}", file=sys.stderr)
             return 2

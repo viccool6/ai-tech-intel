@@ -144,6 +144,12 @@ def _page_metadata(soup: BeautifulSoup, base_url: str, expected_title: str = "")
     author = ld.get("author") or _meta_content(soup, [
         ("name", "author"), ("property", "article:author"), ("name", "byl"),
     ])
+    # If we successfully parsed the page but no author metadata is present,
+    # the article is deliberately institutional (OpenAI/DeepMind blog etc.
+    # publish under the org name, not an individual). Distinguish from
+    # 'unknown' (fetch failed / no HTML at all) — that case is set in the
+    # extract_article() failure return dict below.
+    author_status = "named" if author else "institutional"
     image = ld.get("main_image") or _meta_content(soup, [
         ("property", "og:image"), ("name", "twitter:image"), ("name", "twitter:image:src"),
     ])
@@ -154,6 +160,7 @@ def _page_metadata(soup: BeautifulSoup, base_url: str, expected_title: str = "")
         "date_source": date_source,
         "publisher": publisher,
         "author": author,
+        "author_status": author_status,
         "main_image": image,
     }
 
@@ -302,6 +309,7 @@ def extract_article(url: str, expected_title: str = "") -> dict:
     resolved_url, resolve_note = _resolve_google_news_url(url)
     result = {
         "final_url": resolved_url, "text": "", "main_image": "", "author": "",
+        "author_status": "unknown",
         "publisher": "", "published_at": "",
         "date_source": "", "fetch_status": "failed", "fetch_error": "",
         "link_resolver": "googlenewsdecoder" if resolved_url != url else "",

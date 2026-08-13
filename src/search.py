@@ -24,6 +24,16 @@ _DISPLAY_DATE_EXPR = (
 
 _SOURCE_EXPR = "COALESCE(NULLIF(a.publisher,''), NULLIF(a.source_name,''), '未知信源')"
 
+# Field-weight relevance expression. Used by both LIKE-mode search and the
+# no-query-plus-keyword-filter view. Same-field match counts once regardless
+# of occurrence count. Title 3 > summary 2 > body 1. Callers bind the same
+# LIKE pattern 5 times positionally.
+_WEIGHT_EXPR = (
+    "((CASE WHEN a.title_cn LIKE ? OR a.title_original LIKE ? THEN 3 ELSE 0 END) + "
+    " (CASE WHEN a.summary_cn LIKE ? THEN 2 ELSE 0 END) + "
+    " (CASE WHEN a.article_text LIKE ? OR a.article_text_cn LIKE ? THEN 1 ELSE 0 END))"
+)
+
 # Sentinels for FTS snippet highlighting. SQLite's snippet() returns the
 # column text verbatim (no HTML escaping), so if we hand it '<mark>' and
 # the article body contains '<script>', the template's |safe filter would
@@ -155,10 +165,13 @@ def search_articles(
                 degraded = True
                 mode = "like"
 
-    # Relevance is meaningful whenever there IS a query — FTS gets bm25,
-    # LIKE gets a field-weight score computed below. Only the no-query
-    # list view has nothing to rank against, so it stays date-ordered.
-    effective_sort = "relevance" if (mode in ("fts", "like") and sort == "relevance") else "date"
+    # Relevance is meaningful whenever there's SOMETHING to rank against —
+    # FTS gets bm25, LIKE gets a field-weight score below, keyword-only
+    # filter (no q, keyword chip clicked) also gets the field-weight score
+    # using the keyword text as the ranking term. Only source/days/score
+    # filters alone don't imply a ranking direction.
+    can_rank = mode in ("fts", "like") or (mode == "list" and bool(keyword))
+    effective_sort = "relevance" if (can_rank and sort == "relevance") else "date"
 
     order_by_date = (
         "ORDER BY COALESCE(NULLIF(a.published_at,''), NULLIF(a.rss_published_at,''), "
@@ -197,20 +210,8 @@ def search_articles(
         base_where = " AND ".join([text_clause] + filter_clauses)
         base_params = [like] * len(_LIKE_COLUMNS) + filter_params
         if effective_sort == "relevance":
-            # Field-weight relevance score. Same-field match on a row counts
-            # ONCE regardless of occurrence count — long articles shouldn't
-            # win by sheer length. Title 3 > summary 2 > body 1. Fields
-            # outside this triad (publisher/tags/companies/matched_keywords)
-            # still make a row match but score 0, so they tie-break by date.
-            # 5 LIKE placeholders here, referenced twice (SELECT alias +
-            # WHERE) — SQLite is positional so we bind the value twice.
-            weight_expr = (
-                "((CASE WHEN a.title_cn LIKE ? OR a.title_original LIKE ? THEN 3 ELSE 0 END) + "
-                " (CASE WHEN a.summary_cn LIKE ? THEN 2 ELSE 0 END) + "
-                " (CASE WHEN a.article_text LIKE ? OR a.article_text_cn LIKE ? THEN 1 ELSE 0 END))"
-            )
             select_sql = (
-                f"SELECT a.*, {weight_expr} AS relevance, NULL AS snippet "
+                f"SELECT a.*, {_WEIGHT_EXPR} AS relevance, NULL AS snippet "
                 f"FROM articles a WHERE {base_where} "
                 f"ORDER BY relevance DESC, "
                 f"COALESCE(NULLIF(a.published_at,''), NULLIF(a.rss_published_at,''), a.archived_at) DESC "
@@ -223,8 +224,22 @@ def search_articles(
     else:
         base_where = " AND ".join(filter_clauses) if filter_clauses else "1=1"
         base_params = list(filter_params)
-        select_sql = f"SELECT a.*, NULL AS snippet FROM articles a WHERE {base_where} {order_by_date} LIMIT ? OFFSET ?"
-        select_params_prefix = list(base_params)
+        if effective_sort == "relevance":
+            # No user query, but a keyword chip is active — rank by where
+            # the keyword text lands in the row (title > summary > body),
+            # so chip-filtered results aren't just date-ordered.
+            kw_like = f"%{keyword}%"
+            select_sql = (
+                f"SELECT a.*, {_WEIGHT_EXPR} AS relevance, NULL AS snippet "
+                f"FROM articles a WHERE {base_where} "
+                f"ORDER BY relevance DESC, "
+                f"COALESCE(NULLIF(a.published_at,''), NULLIF(a.rss_published_at,''), a.archived_at) DESC "
+                f"LIMIT ? OFFSET ?"
+            )
+            select_params_prefix = [kw_like] * 5 + list(base_params)
+        else:
+            select_sql = f"SELECT a.*, NULL AS snippet FROM articles a WHERE {base_where} {order_by_date} LIMIT ? OFFSET ?"
+            select_params_prefix = list(base_params)
 
     total = db.execute(f"SELECT COUNT(*) FROM articles a WHERE {base_where}", base_params).fetchone()[0]
     pages = max(1, (total + per_page - 1) // per_page) if total else 1

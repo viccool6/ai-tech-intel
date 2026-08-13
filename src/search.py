@@ -155,7 +155,10 @@ def search_articles(
                 degraded = True
                 mode = "like"
 
-    effective_sort = "relevance" if (mode == "fts" and sort == "relevance") else "date"
+    # Relevance is meaningful whenever there IS a query — FTS gets bm25,
+    # LIKE gets a field-weight score computed below. Only the no-query
+    # list view has nothing to rank against, so it stays date-ordered.
+    effective_sort = "relevance" if (mode in ("fts", "like") and sort == "relevance") else "date"
 
     order_by_date = (
         "ORDER BY COALESCE(NULLIF(a.published_at,''), NULLIF(a.rss_published_at,''), "
@@ -193,8 +196,30 @@ def search_articles(
         text_clause = "(" + " OR ".join(f"a.{c} LIKE ?" for c in _LIKE_COLUMNS) + ")"
         base_where = " AND ".join([text_clause] + filter_clauses)
         base_params = [like] * len(_LIKE_COLUMNS) + filter_params
-        select_sql = f"SELECT a.*, NULL AS snippet FROM articles a WHERE {base_where} {order_by_date} LIMIT ? OFFSET ?"
-        select_params_prefix = list(base_params)
+        if effective_sort == "relevance":
+            # Field-weight relevance score. Same-field match on a row counts
+            # ONCE regardless of occurrence count — long articles shouldn't
+            # win by sheer length. Title 3 > summary 2 > body 1. Fields
+            # outside this triad (publisher/tags/companies/matched_keywords)
+            # still make a row match but score 0, so they tie-break by date.
+            # 5 LIKE placeholders here, referenced twice (SELECT alias +
+            # WHERE) — SQLite is positional so we bind the value twice.
+            weight_expr = (
+                "((CASE WHEN a.title_cn LIKE ? OR a.title_original LIKE ? THEN 3 ELSE 0 END) + "
+                " (CASE WHEN a.summary_cn LIKE ? THEN 2 ELSE 0 END) + "
+                " (CASE WHEN a.article_text LIKE ? OR a.article_text_cn LIKE ? THEN 1 ELSE 0 END))"
+            )
+            select_sql = (
+                f"SELECT a.*, {weight_expr} AS relevance, NULL AS snippet "
+                f"FROM articles a WHERE {base_where} "
+                f"ORDER BY relevance DESC, "
+                f"COALESCE(NULLIF(a.published_at,''), NULLIF(a.rss_published_at,''), a.archived_at) DESC "
+                f"LIMIT ? OFFSET ?"
+            )
+            select_params_prefix = [like] * 5 + list(base_params)
+        else:
+            select_sql = f"SELECT a.*, NULL AS snippet FROM articles a WHERE {base_where} {order_by_date} LIMIT ? OFFSET ?"
+            select_params_prefix = list(base_params)
     else:
         base_where = " AND ".join(filter_clauses) if filter_clauses else "1=1"
         base_params = list(filter_params)

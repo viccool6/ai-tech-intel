@@ -128,12 +128,12 @@ mark{background:#fff2a8;padding:0 1px}
   </div>
   <div class="sort-row">
     排序：
-    {% if mode == 'fts' %}
+    {% if mode in ('fts', 'like') %}
       {% if sort == 'relevance' %}<span class="active">相关度</span>{% else %}<a href="{{ page_url(sort='relevance', page=None) }}">相关度</a>{% endif %}
       ·
       {% if sort == 'date' %}<span class="active">时间</span>{% else %}<a href="{{ page_url(sort='date', page=None) }}">时间</a>{% endif %}
     {% else %}
-      <span class="disabled" title="{% if degraded %}模糊匹配没有相关度可排{% else %}未输入关键词{% endif %}">相关度</span>
+      <span class="disabled" title="未输入关键词">相关度</span>
       ·
       <span class="active">时间</span>
     {% endif %}
@@ -141,7 +141,7 @@ mark{background:#fff2a8;padding:0 1px}
 </form>
 
 {% if degraded %}
-<div class="banner">「{{ q }}」不足 3 个字，已改用模糊匹配，结果未按相关度排序。</div>
+<div class="banner">「{{ q }}」是 2 字词，已用全文模糊匹配，结果完整。相关度由字段权重估算，与全文索引的算法不同。</div>
 {% endif %}
 
 {% if rows %}

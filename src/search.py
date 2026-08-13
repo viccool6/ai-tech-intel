@@ -22,7 +22,13 @@ _DISPLAY_DATE_EXPR = (
     "NULLIF(a.crawled_at,''), a.archived_at), 1, 10)"
 )
 
-_SOURCE_EXPR = "COALESCE(NULLIF(a.publisher,''), NULLIF(a.source_name,''), '未知信源')"
+# Source dropdown + filter both key off source_name — the label of the
+# configured feed (e.g. "OpenAI News", "Google News · HBM"). We deliberately
+# do NOT fall back to publisher: publisher is the underlying media of the
+# fetched article (Fortune, Mashable, 매일경제 ...), which for Google News
+# aggregator feeds would flood the dropdown with dozens of downstream
+# publishers. Publisher still shows in the results row and detail page.
+_SOURCE_EXPR = "COALESCE(NULLIF(a.source_name,''), '未知信源')"
 
 # Field-weight relevance expression. Used by both LIKE-mode search and the
 # no-query-plus-keyword-filter view. Same-field match counts once regardless

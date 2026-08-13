@@ -20,8 +20,24 @@ def _clean(value) -> str:
     if isinstance(value, (list, tuple)):
         return ", ".join(_clean(x) for x in value if _clean(x))
     if isinstance(value, dict):
-        return _clean(value.get("name") or value.get("@id") or "")
+        # Prefer human-readable name. Deliberately NOT falling back to @id:
+        # JSON-LD's @id is an Organization identifier URL (e.g.
+        # "https://the-decoder.com/#organization") and using it as the
+        # publisher name leaks a URL to the reader-facing UI.
+        return _clean(value.get("name") or "")
     return re.sub(r"\s+", " ", str(value)).strip()
+
+
+def _clean_name(value) -> str:
+    """_clean for fields where a person or organisation NAME is expected
+    (publisher, author). Rejects URL-shaped strings so JSON-LD/meta values
+    that leaked through as an id URL don't hit the UI."""
+    result = _clean(value)
+    if not result:
+        return ""
+    if re.match(r"^(?:https?://|www\.)", result, re.I):
+        return ""
+    return result
 
 
 def _date(value) -> str:
@@ -109,8 +125,8 @@ def _json_ld_metadata(soup: BeautifulSoup, expected_title: str = "") -> dict:
     return {
         "published_at": _date(obj.get("datePublished")),
         "date_source": "jsonld.datePublished",
-        "author": _clean(obj.get("author")),
-        "publisher": _clean(obj.get("publisher")),
+        "author": _clean_name(obj.get("author")),
+        "publisher": _clean_name(obj.get("publisher")),
         "main_image": _clean(image),
     }
 
@@ -138,12 +154,14 @@ def _page_metadata(soup: BeautifulSoup, base_url: str, expected_title: str = "")
             date_source = "meta.article:published_time"
     if not published:
         published, date_source = _visible_publish_date(soup, expected_title=expected_title)
-    publisher = ld.get("publisher") or _meta_content(soup, [
+    # Wrap both paths in _clean_name so a stray URL from <meta> can't leak
+    # even when JSON-LD is absent (same defense as the JSON-LD path uses).
+    publisher = _clean_name(ld.get("publisher") or _meta_content(soup, [
         ("property", "og:site_name"), ("name", "application-name"),
-    ])
-    author = ld.get("author") or _meta_content(soup, [
+    ]))
+    author = _clean_name(ld.get("author") or _meta_content(soup, [
         ("name", "author"), ("property", "article:author"), ("name", "byl"),
-    ])
+    ]))
     # If we successfully parsed the page but no author metadata is present,
     # the article is deliberately institutional (OpenAI/DeepMind blog etc.
     # publish under the org name, not an individual). Distinguish from

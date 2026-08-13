@@ -133,9 +133,11 @@ mark{background:#fff2a8;padding:0 1px}
       ·
       {% if sort == 'date' %}<span class="active">时间</span>{% else %}<a href="{{ page_url(sort='date', page=None) }}">时间</a>{% endif %}
     {% else %}
+      {# No query yet — sort choice isn't meaningful, so both muted for
+         visual uniformity of the initial page. Underlying order stays date. #}
       <span class="disabled" title="未输入关键词">相关度</span>
       ·
-      <span class="active">时间</span>
+      <span class="disabled" title="未输入关键词">时间</span>
     {% endif %}
   </div>
 </form>

@@ -9,3 +9,6 @@ data/news.db-shm
 data/news.db.bak-*
 data/logs/*.log
 *.bak
+* [0-9].py
+* [0-9].html
+.gitignore [0-9]

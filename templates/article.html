@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ article.title_cn or article.title_original }}</title>
 <style>
-:root{--ink:#24221f;--muted:#777166;--paper:#faf8f4;--line:#ded8cc;--accent:#b5372e;--good:#2e6b47;--warn:#a46a18;--bad:#a73d31}
+:root{--ink:#24221f;--muted:#777166;--paper:#faf8f4;--line:#ded8cc;--accent:#b5372e}
 *{box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;max-width:920px;margin:auto;padding:34px 22px;color:var(--ink);background:var(--paper);line-height:1.85}
 h1,h2{font-family:"Songti SC",serif}
@@ -16,12 +16,6 @@ h2{font-size:18px;margin:28px 0 10px}
 .back a{color:var(--accent);text-decoration:none}
 .back a:hover{text-decoration:underline}
 a{color:var(--accent)}
-.trust-row{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px;font-size:12px}
-.trust{display:inline-flex;align-items:center;padding:4px 10px;border-radius:4px;border:1px solid var(--line);background:#fff}
-.trust.good{color:var(--good);border-color:#c6dcc9;background:#f2f8f3}
-.trust.warn{color:var(--warn);border-color:#eadcb7;background:#fbf5e6}
-.trust.bad{color:var(--bad);border-color:#e6c3bd;background:#fbf1ee}
-.trust .dot{width:8px;height:8px;border-radius:50%;margin-right:6px;background:currentColor}
 .meta{border-top:2px solid var(--ink);border-bottom:1px solid var(--line);padding:12px 0;font-size:13px;color:#777166}
 .badge{display:inline-block;color:#fff;background:#c0392b;padding:2px 10px;font-weight:700;border-radius:3px}
 .score4{background:#d68a2c}.score3{background:#b29c3f}.score2{background:#8b857a}.score1{background:#bcb4a8;color:#332f28}
@@ -60,37 +54,6 @@ summary{cursor:pointer;font-weight:700}
 </head>
 <body>
 <div class="back"><a href="{{ back_search_url() }}">← 返回检索结果</a></div>
-
-<div class="trust-row">
-  {# AI credibility — hard to trust the summary if the model call failed and rules-only ran #}
-  {% if article.ai_succeeded %}
-    <span class="trust good"><span class="dot"></span>AI 摘要 ✓{% if article.ai_model %}（{{ article.ai_model }}）{% endif %}</span>
-  {% else %}
-    <span class="trust warn"><span class="dot"></span>规则回退（AI 失败）</span>
-  {% endif %}
-  {# Date credibility — only mark verified when it came from real page metadata #}
-  {% if article.date_is_verified %}
-    <span class="trust good"><span class="dot"></span>发布日期已核实</span>
-  {% else %}
-    <span class="trust warn"><span class="dot"></span>发布日期未核实</span>
-  {% endif %}
-  {# Body credibility — fetch outcome affects everything downstream #}
-  {% if article.fetch_status == 'success' %}
-    <span class="trust good"><span class="dot"></span>正文完整</span>
-  {% elif article.fetch_status == 'summary_only' %}
-    <span class="trust warn"><span class="dot"></span>仅有摘要，非完整正文</span>
-  {% else %}
-    <span class="trust bad"><span class="dot"></span>正文抓取失败</span>
-  {% endif %}
-  {# Translation status only shown when the article ran through the translator #}
-  {% if article.translate_status == 'success' %}
-    <span class="trust good"><span class="dot"></span>双语正文 ✓{% if article.translate_model %}（{{ article.translate_model }}）{% endif %}</span>
-  {% elif article.translate_status == 'partial' %}
-    <span class="trust warn"><span class="dot"></span>双语正文部分成功</span>
-  {% elif article.translate_status == 'failed' %}
-    <span class="trust bad"><span class="dot"></span>翻译失败</span>
-  {% endif %}
-</div>
 
 <div class="meta">
   <span class="badge score{{ article.score or 1 }}">重要性 {{ article.score or '-' }}</span>
@@ -172,14 +135,12 @@ summary{cursor:pointer;font-weight:700}
 <div class="body-suppressed">
   <b>本文重要性 {{ article.score or '未知' }} 分</b>，未展开正文（仅重要性 ≥ {{ score_threshold_full_body }} 分的文章会展示抓取到的正文）。
   {% if article.url %}如需完整内容，请点上方「打开原文网页」查看。{% endif %}
-  <br>注：搜索仍能命中本篇的完整正文，只是详情页不展开。
 </div>
 {% endif %}
 
 <details>
   <summary>查看链接与采集信息</summary>
   <p><b>最终原文链接：</b><a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">{{ article.url }}</a></p>
-  {% if article.original_url and article.original_url != article.url %}<p><b>RSS 初始链接：</b>{{ article.original_url }}</p>{% endif %}
   <p><b>抓取状态：</b>{{ article.fetch_status or '未知' }}{% if article.fetch_error %}；{{ article.fetch_error }}{% endif %}</p>
   <p><b>日期来源：</b>{{ article.date_source or '未识别' }}</p>
   <p><b>抓取时间：</b>{{ article.crawled_at or article.archived_at or '' }}</p>

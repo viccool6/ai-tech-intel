@@ -38,7 +38,35 @@ def args():
     p.add_argument("--translate-limit",type=int,default=0,help="--translate 处理篇数上限，0=不限")
     p.add_argument("--translate-id",type=int,default=0,help="只翻这一篇（按 articles.id），绕过 score/fetch/length/only-missing 全部筛选；用于改完提示词后强制重翻")
     p.add_argument("--no-translate",action="store_true",help="常规抓取时禁用自动翻译（省 API 或 dry-run）")
+    p.add_argument("--force",action="store_true",help="强制执行会覆盖已有 AI/翻译结果的组合（例如 --reprocess-ai --no-ai）。默认这种组合会被拒绝，请只在明确要用规则回退覆盖历史结果时才加")
     return p.parse_args()
+
+
+def _guard_destructive_no_ai(a) -> str | None:
+    """Return an error message if the flag combo would silently overwrite
+    existing AI/translation output with the rules fallback (or an empty
+    'skipped' translation). Returns None when safe.
+
+    Rationale: analyze(..., force_no_ai=True) hands back a rules-only fallback
+    dict, and update_ai_result overwrites title_cn/summary_cn/score with it.
+    translate_text(..., force_no_ai=True) returns article_text_cn='' with
+    translate_status='skipped', and update_translation writes that verbatim.
+    Both silently degrade previously-good rows. Require --force or --dry-run
+    to make the intent explicit."""
+    combos = []
+    if a.reprocess_ai and a.no_ai: combos.append("--reprocess-ai --no-ai")
+    if a.translate and a.no_ai:   combos.append("--translate --no-ai")
+    if a.refetch_content and a.no_ai: combos.append("--refetch-content --no-ai")
+    if not combos:
+        return None
+    if a.force or a.dry_run:
+        return None
+    joined = " / ".join(combos)
+    return (
+        f"拒绝执行 {joined}：该组合会用规则回退覆盖已有 AI 结果或清空已有翻译。\n"
+        f"想只看会处理哪些文章，加 --dry-run（只打印候选，不写库）。\n"
+        f"确实要用规则回退覆盖历史结果，加 --force 显式承担风险。"
+    )
 
 
 def _should_translate(item: dict) -> bool:
@@ -64,6 +92,10 @@ def reset():
 
 def main():
     a=args(); logging_setup()
+    guard=_guard_destructive_no_ai(a)
+    if guard:
+        print(guard, file=sys.stderr)
+        return 3
     if a.reset: reset(); logging.info("已清空 data/news.db（档案库/ 保留）")
     sources=[s for s in load_json(BASE/"config/sources.json").get("sources",[]) if s.get("enabled")]
     if a.source:
@@ -106,6 +138,11 @@ def main():
             articles=[item for item in articles if item.get("fetch_status") != "success"]
         if a.refetch_limit > 0:
             articles=articles[:a.refetch_limit]
+        if a.dry_run:
+            print(f"[dry-run] --refetch-content 将处理 {len(articles)} 篇（不重新抓取、不改库）：")
+            for art in articles:
+                print(f"  id={art['id']}  fetch={art.get('fetch_status','?')}  {(art.get('title_original') or '')[:70]}")
+            storage.close(); return 0
         complete=partial=failed=0
         for index, article in enumerate(articles, 1):
             target=article.get("original_url") or article.get("url")
@@ -147,6 +184,11 @@ def main():
             articles=[item for item in articles if item.get("ai_status") != "success"]
         if a.reprocess_limit > 0:
             articles=articles[:a.reprocess_limit]
+        if a.dry_run:
+            print(f"[dry-run] --reprocess-ai 将处理 {len(articles)} 篇（不调 AI、不改库）：")
+            for art in articles:
+                print(f"  id={art['id']}  ai_status={art.get('ai_status','?')}  score={art.get('score')}  {(art.get('title_original') or '')[:70]}")
+            storage.close(); return 0
         success=fallback_count=0
         for index, article in enumerate(articles, 1):
             logging.info("历史AI重处理 [%s/%s]：%s",index,len(articles),article.get("title_original",""))
@@ -208,6 +250,11 @@ def main():
                 print(f"数据库里没有 id={a.translate_id} 的文章")
             else:
                 print("没有符合条件的文章需要翻译（score>=4 且 fetch=success 且正文>500 字"+ ("；已排除 translate_status=success 的" if a.only_missing else "") +"）")
+            storage.close(); return 0
+        if a.dry_run:
+            print(f"[dry-run] --translate 将处理 {len(candidates)} 篇（不调 AI、不改库）：")
+            for art in candidates:
+                print(f"  id={art['id']}  score={art.get('score')}  translate={art.get('translate_status') or '-'}  cn_len={len(art.get('article_text_cn') or '')}  {(art.get('title_original') or '')[:60]}")
             storage.close(); return 0
         ok=partial=failed=skipped=0
         for index, article in enumerate(candidates, 1):

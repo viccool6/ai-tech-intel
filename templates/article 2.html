@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ article.title_cn or article.title_original }}</title>
+<style>
+:root{--ink:#24221f;--muted:#777166;--paper:#faf8f4;--line:#ded8cc;--accent:#b5372e;--good:#2e6b47;--warn:#a46a18;--bad:#a73d31}
+*{box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;max-width:920px;margin:auto;padding:34px 22px;color:var(--ink);background:var(--paper);line-height:1.85}
+h1,h2{font-family:"Songti SC",serif}
+h1{font-size:29px;line-height:1.45;margin:18px 0 4px}
+h2{font-size:18px;margin:28px 0 10px}
+.en-title{color:#8b857a;font-size:14px;margin-bottom:22px}
+.back{font-size:13px;margin-bottom:12px}
+.back a{color:var(--accent);text-decoration:none}
+.back a:hover{text-decoration:underline}
+a{color:var(--accent)}
+.trust-row{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px;font-size:12px}
+.trust{display:inline-flex;align-items:center;padding:4px 10px;border-radius:4px;border:1px solid var(--line);background:#fff}
+.trust.good{color:var(--good);border-color:#c6dcc9;background:#f2f8f3}
+.trust.warn{color:var(--warn);border-color:#eadcb7;background:#fbf5e6}
+.trust.bad{color:var(--bad);border-color:#e6c3bd;background:#fbf1ee}
+.trust .dot{width:8px;height:8px;border-radius:50%;margin-right:6px;background:currentColor}
+.meta{border-top:2px solid var(--ink);border-bottom:1px solid var(--line);padding:12px 0;font-size:13px;color:#777166}
+.badge{display:inline-block;color:#fff;background:#c0392b;padding:2px 10px;font-weight:700;border-radius:3px}
+.score4{background:#d68a2c}.score3{background:#b29c3f}.score2{background:#8b857a}.score1{background:#bcb4a8;color:#332f28}
+.tag{display:inline-block;border:1px solid #d9d2c6;padding:0 8px;margin:3px;border-radius:3px;font-size:12px}
+.keyword{display:inline-block;background:#fff2a8;padding:0 8px;margin:3px;border-radius:3px;font-size:12px;color:#514719}
+.source-card{background:#fff;border:1px solid var(--line);border-radius:6px;padding:14px 16px;margin:18px 0}
+.source-grid{display:grid;grid-template-columns:120px 1fr;gap:7px 12px;font-size:13px}
+.label{color:var(--muted)}
+.original-button{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;padding:9px 15px;border-radius:5px;font-weight:700;margin-top:12px}
+.summary{background:#f1ede5;border:1px solid var(--line);padding:18px 20px;margin:24px 0;border-radius:5px}
+.reason{border-top:1px dashed #d5cec2;border-bottom:1px dashed #d5cec2;padding:11px 0;color:#a73d31;font-size:13px}
+img{max-width:100%;height:auto;margin:18px 0}
+.article-body{max-width:680px;margin:20px auto 30px;color:#2d2a25}
+/* Bilingual pair styling from 归档模板/单篇归档模板.html:
+   English lead paragraph in Georgia italic grey, immediately followed by
+   its Chinese translation tightly beneath so the eye can zip line-by-line.
+   .zh margin-bottom carries the paragraph gap so the .en of the next pair
+   sits far enough from the previous .zh. */
+.article-body .en{font-family:Georgia,"Times New Roman",serif;font-style:italic;color:#9a9382;font-size:13.5px;line-height:1.85;margin:18px 0 3px}
+.article-body .zh{font-size:16.5px;line-height:2;color:#232323;margin:3px 0 20px}
+.article-body.only-cn .zh{margin-top:0}
+.article-body.only-cn p:first-child{margin-top:0}
+.view-toggle{max-width:680px;margin:14px auto 0;font-size:12px;color:var(--muted);text-align:right}
+.view-toggle a{color:var(--muted);text-decoration:none;border-bottom:1px dotted transparent;margin-left:8px}
+.view-toggle a:hover{color:var(--accent);border-bottom-color:var(--accent)}
+.view-toggle .active{color:var(--ink);font-weight:600;margin-left:8px}
+.translate-note{max-width:680px;margin:6px auto 0;font-size:12px;color:var(--muted);text-align:right}
+.empty-body{max-width:640px;margin:20px auto;padding:18px 20px;background:#fff;border:1px dashed #cfc6b8;border-radius:5px;color:var(--muted);text-align:center;font-size:14px}
+.body-suppressed{max-width:640px;margin:20px auto;padding:16px 20px;background:#f7f3ec;border:1px solid var(--line);border-radius:5px;color:#5f5950;font-size:13.5px;line-height:1.8}
+.body-suppressed b{color:var(--ink)}
+details{background:#fff;border:1px solid var(--line);border-radius:6px;padding:12px 16px;margin:20px 0}
+summary{cursor:pointer;font-weight:700}
+.notice{font-size:12px;color:#8b857a;margin-top:42px;border-top:1px solid var(--line);padding-top:12px}
+@media(max-width:600px){.source-grid{grid-template-columns:1fr}.label{font-weight:700}.article-body{font-size:15px}}
+</style>
+</head>
+<body>
+<div class="back"><a href="{{ back_search_url() }}">← 返回检索结果</a></div>
+
+<div class="trust-row">
+  {# AI credibility — hard to trust the summary if the model call failed and rules-only ran #}
+  {% if article.ai_succeeded %}
+    <span class="trust good"><span class="dot"></span>AI 摘要 ✓{% if article.ai_model %}（{{ article.ai_model }}）{% endif %}</span>
+  {% else %}
+    <span class="trust warn"><span class="dot"></span>规则回退（AI 失败）</span>
+  {% endif %}
+  {# Date credibility — only mark verified when it came from real page metadata #}
+  {% if article.date_is_verified %}
+    <span class="trust good"><span class="dot"></span>发布日期已核实</span>
+  {% else %}
+    <span class="trust warn"><span class="dot"></span>发布日期未核实</span>
+  {% endif %}
+  {# Body credibility — fetch outcome affects everything downstream #}
+  {% if article.fetch_status == 'success' %}
+    <span class="trust good"><span class="dot"></span>正文完整</span>
+  {% elif article.fetch_status == 'summary_only' %}
+    <span class="trust warn"><span class="dot"></span>仅有摘要，非完整正文</span>
+  {% else %}
+    <span class="trust bad"><span class="dot"></span>正文抓取失败</span>
+  {% endif %}
+  {# Translation status only shown when the article ran through the translator #}
+  {% if article.translate_status == 'success' %}
+    <span class="trust good"><span class="dot"></span>双语正文 ✓{% if article.translate_model %}（{{ article.translate_model }}）{% endif %}</span>
+  {% elif article.translate_status == 'partial' %}
+    <span class="trust warn"><span class="dot"></span>双语正文部分成功</span>
+  {% elif article.translate_status == 'failed' %}
+    <span class="trust bad"><span class="dot"></span>翻译失败</span>
+  {% endif %}
+</div>
+
+<div class="meta">
+  <span class="badge score{{ article.score or 1 }}">重要性 {{ article.score or '-' }}</span>
+  {% for tag in article.industry_tags %}<span class="tag">{{ tag }}</span>{% endfor %}
+  {% for kw in article.matched_keyword_list %}<span class="keyword">{{ kw }}</span>{% endfor %}
+</div>
+
+<h1>{{ article.title_cn or article.title_original }}</h1>
+{% if article.title_cn and article.title_original and article.title_cn != article.title_original %}
+<div class="en-title">{{ article.title_original }}</div>
+{% endif %}
+
+<div class="source-card">
+  <div class="source-grid">
+    <div class="label">真实来源</div><div>{{ article.publisher or article.source_name or "未识别" }}</div>
+    <div class="label">作者</div><div>{{ article.author or "未披露/未识别" }}</div>
+    {% if article.date_is_verified %}
+      <div class="label">发布日期</div><div>{{ article.published_at[:10] }}</div>
+    {% elif article.display_date %}
+      <div class="label">归档日期</div><div>{{ article.display_date }}（来源未核实）</div>
+    {% endif %}
+    <div class="label">涉及公司</div><div>{{ article.companies|join("、") if article.companies else "未识别" }}</div>
+  </div>
+  {% if article.url %}<a class="original-button" href="{{ article.url }}" target="_blank" rel="noopener noreferrer">打开原文网页 ↗</a>{% endif %}
+</div>
+
+{% if article.ai_succeeded %}
+  <div class="summary"><b>AI 中文摘要：</b>{{ article.summary_cn }}</div>
+  {% if article.score_reason %}<div class="reason"><b>AI 打分理由：</b>{{ article.score_reason }}</div>{% endif %}
+{% else %}
+  <div class="summary"><b>原始摘要 / 规则回退：</b>{{ article.summary_cn or article.rss_summary or "（无摘要）" }}</div>
+  <div class="reason"><b>状态说明：</b>AI 处理失败，本页仅展示原始摘要与关键词规则评分，不应视为 AI 翻译或 AI 结论。{% if article.ai_error %} 错误：{{ article.ai_error }}{% endif %}</div>
+{% endif %}
+
+{% if article.main_image %}<img src="{{ article.main_image }}" alt="文章主图">{% endif %}
+
+{% if (article.score or 0) >= score_threshold_full_body %}
+<h2>抓取到的正文</h2>
+{% if article.paragraphs %}
+  {% if article.paragraphs_cn %}
+  <div class="view-toggle">
+    显示：
+    {% if view == 'cn' %}
+      <a href="{{ page_url(view='both') }}">中英对照</a>
+      <span class="active">只看中文</span>
+    {% else %}
+      <span class="active">中英对照</span>
+      <a href="{{ page_url(view='cn') }}">只看中文</a>
+    {% endif %}
+  </div>
+  {% if article.translate_status == 'partial' %}
+  <div class="translate-note">⚠ 本篇存在部分段落翻译失败，页面上以 [本段翻译失败] 标识；如需重试可运行 <code>run.py --translate --only-missing</code>。</div>
+  {% endif %}
+  <div class="article-body{% if view == 'cn' %} only-cn{% endif %}">
+    {% for i in range(article.paragraphs|length) %}
+      {% if view != 'cn' %}<p class="en">{{ article.paragraphs[i] }}</p>{% endif %}
+      {% if i < article.paragraphs_cn|length %}<p class="zh">{{ article.paragraphs_cn[i] }}</p>{% endif %}
+    {% endfor %}
+    {# If translation returned more paragraphs than the source (shouldn't happen), show the remainder anyway #}
+    {% if article.paragraphs_cn|length > article.paragraphs|length %}
+      {% for j in range(article.paragraphs|length, article.paragraphs_cn|length) %}
+        <p class="zh">{{ article.paragraphs_cn[j] }}</p>
+      {% endfor %}
+    {% endif %}
+  </div>
+  {% else %}
+  {# No translation yet — render original as before (no bilingual pairs) #}
+  <div class="article-body">
+    {% for p in article.paragraphs %}<p class="en">{{ p }}</p>{% endfor %}
+  </div>
+  {% endif %}
+{% else %}
+<div class="empty-body">
+  正文未抓取成功{% if article.fetch_error %}（{{ article.fetch_error }}）{% endif %}。
+  {% if article.url %}请点上方 <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">「打开原文网页」</a> 查看。{% endif %}
+</div>
+{% endif %}
+{% else %}
+<div class="body-suppressed">
+  <b>本文重要性 {{ article.score or '未知' }} 分</b>，未展开正文（仅重要性 ≥ {{ score_threshold_full_body }} 分的文章会展示抓取到的正文）。
+  {% if article.url %}如需完整内容，请点上方「打开原文网页」查看。{% endif %}
+  <br>注：搜索仍能命中本篇的完整正文，只是详情页不展开。
+</div>
+{% endif %}
+
+<details>
+  <summary>查看链接与采集信息</summary>
+  <p><b>最终原文链接：</b><a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">{{ article.url }}</a></p>
+  {% if article.original_url and article.original_url != article.url %}<p><b>RSS 初始链接：</b>{{ article.original_url }}</p>{% endif %}
+  <p><b>抓取状态：</b>{{ article.fetch_status or '未知' }}{% if article.fetch_error %}；{{ article.fetch_error }}{% endif %}</p>
+  <p><b>日期来源：</b>{{ article.date_source or '未识别' }}</p>
+  <p><b>抓取时间：</b>{{ article.crawled_at or article.archived_at or '' }}</p>
+</details>
+
+<div class="notice">AI 状态、日期核实、正文完整性以顶部三个徽章为准。发布日期仅在来源为网页级结构化数据、明确发布元数据或标题附近带明确日期标签时才判为「已核实」；否则显示归档日期作为参考。关键数字请回到原文核验。</div>
+</body>
+</html>

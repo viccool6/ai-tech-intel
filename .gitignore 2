@@ -1,0 +1,10 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+.DS_Store
+data/news.db
+data/news.db-wal
+data/news.db-shm
+data/news.db.bak-*
+data/logs/*.log

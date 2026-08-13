@@ -118,7 +118,24 @@ def analyze(article: dict, rules: dict, prompt_template: str, force_no_ai: bool 
     else:
         payload["response_format"] = {"type": "json_object"}
 
+    # Preflight: DeepSeek (and other OpenAI-compat providers) require the
+    # word "json" to appear somewhere in the messages when response_format
+    # is json_object — otherwise they return 400 with an opaque error.
+    # Catch this locally so future prompt edits / model swaps that drop
+    # the word don't ship silently. See git log around this commit for the
+    # incident that motivated this check.
+    if payload["response_format"].get("type") == "json_object":
+        combined = " ".join(m.get("content", "") for m in messages).lower()
+        if "json" not in combined:
+            return _fallback_with_error(
+                article,
+                "preflight: response_format=json_object 但 messages 里不含 'json'，"
+                "会被 DeepSeek 400 拒（Prompt must contain the word 'json'）。请在 "
+                "prompts/news_analysis.md 里加一句 JSON 输出指令，或改 AI_USE_JSON_SCHEMA=true。",
+            )
+
     errors = []
+
     for attempt in range(retries + 1):
         try:
             response = requests.post(
@@ -135,6 +152,15 @@ def analyze(article: dict, rules: dict, prompt_template: str, force_no_ai: bool 
                 )
                 time.sleep(2 ** attempt + 1)
                 continue
+            # Preserve the provider's response body BEFORE raise_for_status
+            # eats it — DeepSeek's 400 body contains the exact reason (e.g.
+            # unsupported response_format / model mismatch). Raise a custom
+            # exception carrying the body so it ends up in ai_error, not
+            # just "400 Bad Request".
+            if not response.ok:
+                body = (response.text or "")[:500]
+                logging.warning("AI HTTP %s response body: %s", response.status_code, body)
+                raise RuntimeError(f"HTTP {response.status_code}: {body}")
             response.raise_for_status()
             data = response.json()
             content = data["choices"][0]["message"]["content"]
@@ -161,4 +187,7 @@ def analyze(article: dict, rules: dict, prompt_template: str, force_no_ai: bool 
             if attempt < retries:
                 time.sleep(2 ** attempt + 1)
 
-    return _fallback_with_error(article, " | ".join(errors)[-2000:])
+    # 500-char cap keeps ai_error readable in the DB and the detail-page
+    # error line; take the tail so the freshest attempt's body wins over
+    # earlier retries.
+    return _fallback_with_error(article, (" | ".join(errors))[-500:])

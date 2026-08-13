@@ -1,0 +1,22 @@
+# Timer for ai-tech-intel.service. Fires nightly during DeepSeek's
+# off-peak window (00:30–08:30 CST). RandomizedDelaySec spreads
+# fleet-wide load; irrelevant here but costs nothing.
+#
+# Verify after install:
+#   systemctl list-timers | grep ai-tech-intel
+
+[Unit]
+Description=Schedule nightly ingestion inside DeepSeek off-peak window
+
+[Timer]
+# 03:15 local time — solidly inside off-peak, unlikely to collide with
+# other cron jobs. Server timezone must be set correctly (Asia/Shanghai)
+# for this to land where you expect: `timedatectl set-timezone Asia/Shanghai`.
+OnCalendar=*-*-* 03:15:00
+# Catch up if the machine was down at 03:15.
+Persistent=true
+RandomizedDelaySec=15m
+Unit=ai-tech-intel.service
+
+[Install]
+WantedBy=timers.target

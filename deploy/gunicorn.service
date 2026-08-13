@@ -1,0 +1,41 @@
+# Gunicorn systemd unit for the Flask app.
+#
+# Install:
+#   sudo cp deploy/gunicorn.service /etc/systemd/system/ai-tech-intel-web.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now ai-tech-intel-web
+#
+# Runs as a regular user (not root), binds only to 127.0.0.1 — nginx
+# reverse-proxies with Basic Auth on port 80.
+
+[Unit]
+Description=AI Tech Intel — gunicorn Flask app
+After=network.target
+
+[Service]
+Type=simple
+User=<SYSTEM_USER>
+Group=<SYSTEM_USER>
+WorkingDirectory=<APP_PATH>
+EnvironmentFile=<APP_PATH>/.env
+# 2 workers = enough for a private, small-audience site; bump if traffic grows.
+ExecStart=<APP_PATH>/.venv/bin/gunicorn \
+    --workers 2 \
+    --bind 127.0.0.1:5000 \
+    --access-logfile - \
+    --error-logfile - \
+    --timeout 60 \
+    "app:create_app()"
+Restart=on-failure
+RestartSec=5s
+
+# Hardening — the app only needs to read the checkout and write the DB + logs.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+# Everything else on disk is off-limits; opens back up just data/ and 档案库/.
+ReadWritePaths=<APP_PATH>/data <APP_PATH>/档案库
+
+[Install]
+WantedBy=multi-user.target

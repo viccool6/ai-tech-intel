@@ -12,7 +12,6 @@ from bs4 import BeautifulSoup
 from src.article_parser import _page_metadata
 from src.scorer import fallback
 from src.storage import Storage
-from src.html_generator import HtmlGenerator
 from src.keywords import matched_keywords
 
 html_doc = '''<html><head>
@@ -52,21 +51,19 @@ with tempfile.TemporaryDirectory() as td:
     assert legacy["published_at"] == "" and legacy["rss_published_at"].startswith("2026-07-16")
     migrated.close()
 
-    store=Storage(td/"news.db")
-    gen=HtmlGenerator(BASE/"templates",td/"archive",keywords=["HBM","NVIDIA"])
-    article["archive_file"]=gen.article(article)
+    # Storage round-trip + keyword matching.
+    store=Storage(td/"news.db",keywords=["HBM","NVIDIA"])
     store.save(article)
-    rebuilt=gen.rebuild_articles(store.all(),store)
-    gen.index(rebuilt)
-    index_text=(td/"archive/index.html").read_text(encoding="utf-8")
-    detail_text=(td/"archive"/article["archive_file"]).read_text(encoding="utf-8")
-    assert "searchInput" in index_text
-    assert "HBM（1）" in index_text
-    assert "原文↗" in index_text
-    assert "打开原文网页" in detail_text
-    assert "RSS提供/收录日期" not in detail_text
-    assert "原文更新时间" not in detail_text
-    assert "2026-07-08" in detail_text and "2026-07-16" not in detail_text
+    rows=store.all()
+    assert len(rows)==1
+    saved=rows[0]
+    # save() computed matched_keywords via _match_for using the constructor keywords.
+    # Storage stores the pipe-delimited form (|HBM|NVIDIA|); Flask's _hydrate splits it later.
+    stored=saved.get("matched_keywords") or ""
+    tokens={t for t in stored.split("|") if t}
+    assert tokens=={"HBM","NVIDIA"}, f"expected HBM+NVIDIA, got {tokens!r} (raw={stored!r})"
+    assert saved["title_original"]=="NVIDIA launches new HBM AI server platform"
+    # Standalone matched_keywords helper still works.
     assert matched_keywords(article,["HBM","CPO"])==["HBM"]
     store.close()
 print("SELF_TEST_OK")

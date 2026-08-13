@@ -1,0 +1,31 @@
+# Nightly ingestion — runs run.py once. Paired with ai-tech-intel.timer.
+#
+# Install both files together:
+#   sudo cp deploy/ai-tech-intel.service deploy/ai-tech-intel.timer /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now ai-tech-intel.timer
+#
+# The unit does NOT run on its own — the timer decides when.
+
+[Unit]
+Description=AI Tech Intel — periodic ingestion (fetch + AI + translate)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=<SYSTEM_USER>
+Group=<SYSTEM_USER>
+WorkingDirectory=<APP_PATH>
+EnvironmentFile=<APP_PATH>/.env
+# --hours 24 matches the timer cadence; adjust if you change OnCalendar.
+ExecStart=<APP_PATH>/.venv/bin/python run.py --hours 24
+# Prevent overlapping runs if a previous one hasn't finished yet.
+TimeoutStartSec=45min
+
+# Same hardening posture as the web unit.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=<APP_PATH>/data <APP_PATH>/档案库

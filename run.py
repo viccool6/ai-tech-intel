@@ -1,12 +1,11 @@
 from __future__ import annotations
-import argparse, json, logging, os, shutil, sys
+import argparse, json, logging, os, sys
 from pathlib import Path
 from dotenv import load_dotenv
 from src.ai_client import analyze
 from src.article_parser import extract_article
 from src.config import SCORE_THRESHOLD_FULL_BODY
 from src.fetchers import fetch_source
-from src.html_generator import HtmlGenerator
 from src.keywords import add_keyword, load_keywords, remove_keyword
 from src.storage import Storage
 from src.translator import translate_text
@@ -16,14 +15,14 @@ BASE=Path(__file__).resolve().parent
 load_dotenv(BASE/".env")
 
 def args():
-    p=argparse.ArgumentParser(description="AI科技产业情报系统 V4.4")
+    p=argparse.ArgumentParser(description="AI科技产业情报系统 · 采集/AI/翻译入口（Flask 站点见 app.py）")
     p.add_argument("--hours",type=int,default=24)
     p.add_argument("--max-items",type=int,default=3,help="每个信源最多条数")
     p.add_argument("--source",help="仅运行指定source id")
     p.add_argument("--no-ai",action="store_true")
     p.add_argument("--dry-run",action="store_true")
-    p.add_argument("--reset",action="store_true")
-    p.add_argument("--rebuild-index",action="store_true")
+    p.add_argument("--reset",action="store_true",help="清空 data/news.db；不再清理 档案库/（历史备份保留）")
+    p.add_argument("--rebuild-index",action="store_true",help="重建 FTS 搜索索引 + 关键词重算（不再生成静态页）")
     p.add_argument("--refetch-content",action="store_true",help="重新解析历史原文链接并补抓正文")
     p.add_argument("--refetch-only-summary",action="store_true",help="与--refetch-content配合，仅处理正文不完整/失败的文章")
     p.add_argument("--refetch-limit",type=int,default=0,help="历史正文重抓篇数上限，0表示不限制")
@@ -31,8 +30,8 @@ def args():
     p.add_argument("--reprocess-ai",action="store_true",help="对历史文章重新执行AI翻译、摘要和评分，不重新抓取")
     p.add_argument("--reprocess-only-fallback",action="store_true",help="与--reprocess-ai配合，仅处理此前AI失败或回退的文章")
     p.add_argument("--reprocess-limit",type=int,default=0,help="历史AI重处理篇数上限，0表示不限制")
-    p.add_argument("--add-keyword",help="新增一个监控关键词后重建索引")
-    p.add_argument("--remove-keyword",help="删除一个监控关键词后重建索引")
+    p.add_argument("--add-keyword",help="新增一个监控关键词，随后自动重算 matched_keywords 并重建 FTS")
+    p.add_argument("--remove-keyword",help="删除一个监控关键词，随后自动重算 matched_keywords 并重建 FTS")
     p.add_argument("--list-keywords",action="store_true",help="列出全部监控关键词")
     p.add_argument("--translate",action="store_true",help="对历史 4-5 分文章批量翻译正文（不重新抓取）")
     p.add_argument("--only-missing",action="store_true",help="与 --translate 配合，只处理未成功翻译的文章（跳过已 success）")
@@ -52,21 +51,20 @@ def _should_translate(item: dict) -> bool:
         and len(item.get("article_text") or "") > 500
     )
 
+
 def logging_setup():
     d=BASE/"data/logs"; d.mkdir(parents=True,exist_ok=True)
     logging.basicConfig(level=logging.INFO,format="%(asctime)s | %(levelname)s | %(message)s",handlers=[logging.StreamHandler(sys.stdout),logging.FileHandler(d/"latest.log",encoding="utf-8")])
 
 def reset():
+    # Drop the DB. 档案库/ is intentionally left alone — html_generator.py
+    # is gone and the folder is preserved as a historical archive.
     db=BASE/"data/news.db"
     if db.exists(): db.unlink()
-    archive=BASE/"档案库"
-    for p in archive.iterdir():
-        if p.name=="专题": continue
-        shutil.rmtree(p) if p.is_dir() else p.unlink()
 
 def main():
     a=args(); logging_setup()
-    if a.reset: reset(); logging.info("已清空测试数据库和归档")
+    if a.reset: reset(); logging.info("已清空 data/news.db（档案库/ 保留）")
     sources=[s for s in load_json(BASE/"config/sources.json").get("sources",[]) if s.get("enabled")]
     if a.source:
         sources=[s for s in sources if s.get("id")==a.source]
@@ -86,16 +84,22 @@ def main():
         print(f"已删除关键词：{a.remove_keyword}" if changed else f"未找到关键词：{a.remove_keyword}")
     rules=load_json(BASE/"config/scoring_rules.json")
     prompt=(BASE/"prompts/news_analysis.md").read_text(encoding="utf-8")
-    # Pass keywords into Storage so update_translation / save / update_ai_result
-    # can trigger _refresh_matched(id) automatically. Without this, translation
-    # writes leave matched_keywords stale until someone runs `python -m src.storage reindex`.
-    storage=Storage(BASE/"data/news.db",keywords=keywords); html=HtmlGenerator(BASE/"templates",BASE/"档案库",keywords=keywords)
+    # Storage gets keywords so save/update_ai_result/update_metadata/update_translation
+    # can auto-refresh matched_keywords on every write.
+    storage=Storage(BASE/"data/news.db",keywords=keywords)
+
     if a.add_keyword or a.remove_keyword:
-        articles=html.rebuild_articles(storage.all(),storage)
-        html.index(articles); storage.close(); logging.info("关键词已更新，详情页和索引已重建"); return 0
+        touched, fts_count = storage.reindex()
+        storage.close()
+        logging.info("关键词表已更新；%s 行 matched_keywords 重算，FTS 影子表现 %s 行", touched, fts_count)
+        return 0
+
     if a.rebuild_index:
-        articles=html.rebuild_articles(storage.all(),storage)
-        html.index(articles); storage.close(); logging.info("详情页和索引已重建"); return 0
+        touched, fts_count = storage.reindex()
+        storage.close()
+        logging.info("FTS 搜索索引已重建：%s 行 matched_keywords 重算，FTS 影子表现 %s 行", touched, fts_count)
+        return 0
+
     if a.refetch_content:
         articles=storage.all()
         if a.refetch_only_summary:
@@ -123,6 +127,8 @@ def main():
             if parsed.get("published_at"):
                 metadata["published_at"]=parsed["published_at"]
                 metadata["date_source"]=parsed.get("date_source") or "webpage"
+            # update_metadata triggers _refresh_matched → matched_keywords column
+            # is recomputed; FTS au trigger keeps the shadow in sync automatically.
             storage.update_metadata(int(article["id"]),metadata)
             if parsed.get("fetch_status") == "success":
                 complete+=1
@@ -131,8 +137,7 @@ def main():
                 storage.update_ai_result(int(article["id"]),result)
             elif parsed.get("fetch_status") == "summary_only": partial+=1
             else: failed+=1
-        rebuilt=html.rebuild_articles(storage.all(),storage)
-        html.index(rebuilt); storage.close()
+        storage.close()
         print(f"历史正文重抓完成：完整{complete}篇｜摘要级{partial}篇｜失败{failed}篇｜合计{len(articles)}篇")
         return 0
 
@@ -146,14 +151,14 @@ def main():
         for index, article in enumerate(articles, 1):
             logging.info("历史AI重处理 [%s/%s]：%s",index,len(articles),article.get("title_original",""))
             result=analyze(article,rules,prompt,force_no_ai=a.no_ai)
+            # update_ai_result also refreshes matched_keywords for this row.
             storage.update_ai_result(int(article["id"]),result)
             if result.get("ai_status") == "success":
                 success+=1
             else:
                 fallback_count+=1
                 logging.warning("历史AI重处理回退：%s",result.get("ai_error") or "未知原因")
-        rebuilt=html.rebuild_articles(storage.all(),storage)
-        html.index(rebuilt); storage.close()
+        storage.close()
         print(f"历史AI重处理完成：成功{success}篇｜回退{fallback_count}篇｜合计{len(articles)}篇")
         return 0
 
@@ -188,8 +193,7 @@ def main():
                 metadata["article_text"]=parsed["text"]
             storage.update_metadata(int(article["id"]),metadata)
             repaired+=1
-        articles=html.rebuild_articles(storage.all(),storage)
-        html.index(articles); storage.close()
+        storage.close()
         print(f"历史日期修复完成：处理{repaired}篇｜网页识别{verified}篇｜页面不显示日期{failed}篇")
         return 0
 
@@ -243,14 +247,14 @@ def main():
             item["url"]=normalize_url(parsed.get("final_url") or item["url"])
             item["article_text"]=parsed.get("text",""); item["main_image"]=parsed.get("main_image","")
             item["publisher"]=parsed.get("publisher",""); item["author"]=parsed.get("author","")
+            item["author_status"]=parsed.get("author_status","unknown")
             item["updated_at"]=""
             if parsed.get("published_at"):
                 item["published_at"]=parsed["published_at"]
                 item["date_source"]=parsed.get("date_source") or "webpage"
             elif source.get("trust_rss_date") and item.get("rss_published_at"):
                 # Whitelist: for known-reliable feeds (openai_news/deepmind_blog/nvidia_blog)
-                # we promote the RSS date when page fetch didn't yield one. Marked with a
-                # distinct date_source so we can audit which rows came in via this path.
+                # we promote the RSS date when page fetch didn't yield one.
                 item["published_at"]=item["rss_published_at"]
                 item["date_source"]="rss.trusted"
             else:
@@ -274,15 +278,13 @@ def main():
                 elif tr.get("translate_status") in ("partial","failed"): translated_fail+=1
                 if tr.get("translate_error"):
                     logging.info("翻译提示：%s", tr["translate_error"])
-            item["archive_file"]=html.article(item)
             storage.save(item); new+=1
             logging.info("归档 [%s分/%s] %s",item["score"],item["ai_status"],item["title_cn"])
-    if not a.dry_run: html.index(storage.all())
     storage.close()
     print("\n===== 运行报告 =====")
     print(f"抓取：{fetched}｜新增：{new}｜重复：{dup}｜完整正文不足：{summary_only}｜内容失败：{content_fail}")
     print(f"翻译：{translated_ok}成功｜{translated_fail}失败或部分")
-    print(f"索引：{BASE/'档案库/index.html'}")
+    print(f"数据库：{BASE/'data/news.db'}（Flask 站点：app.py）")
     if not any(os.getenv(name) for name in ("AI_API_KEY","OPENROUTER_API_KEY","OPENAI_API_KEY","DEEPSEEK_API_KEY","SILICONFLOW_API_KEY")) and not a.no_ai: print("提示：未配置AI_API_KEY或兼容供应商密钥，本次自动使用规则回退。")
     return 0
 

@@ -46,9 +46,11 @@ img{max-width:100%;height:auto;margin:18px 0}
 /* Date-source tooltip: :hover for desktop mouse, .open (JS-toggled) for
    touch/tap. Both paths flip display:block via the same rule so touch
    devices don't need CSS media queries to unlock the tip. */
-.date-info{display:inline-block;position:relative;margin-left:4px;vertical-align:middle;cursor:pointer}
-.date-info-icon{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border:1px solid var(--muted);color:var(--muted);border-radius:50%;font-size:10px;font-family:Georgia,serif;font-style:italic;line-height:1;user-select:none}
-.date-info-icon:hover{border-color:var(--accent);color:var(--accent)}
+.date-info{display:inline-block;position:relative;margin-left:4px;cursor:pointer;color:var(--muted)}
+.date-info:hover{color:var(--ink)}
+/* SVG replaces the Unicode ⓘ — the character rendered chunky and vertically
+   off on macOS. currentColor lets .date-info's color drive both circle and i. */
+.date-info-icon{display:inline-block;vertical-align:-0.2em;width:14px;height:14px}
 .date-info-tip{display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:20;min-width:240px;max-width:320px;padding:10px 12px;background:#332f28;color:#f7f3ec;font-size:12px;line-height:1.65;border-radius:5px;box-shadow:0 4px 12px rgba(0,0,0,.18);white-space:normal;font-weight:400}
 .date-info-tip::before{content:"";position:absolute;top:-5px;left:12px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:5px solid #332f28}
 .date-info:hover .date-info-tip,.date-info.open .date-info-tip{display:block}
@@ -81,10 +83,10 @@ summary{cursor:pointer;font-weight:700}
     <div class="label">作者</div><div>{{ article.author or "未披露/未识别" }}</div>
     {% if article.date_is_verified %}
       <div class="label">发布日期</div>
-      <div>{{ article.published_at[:10] }}<span class="date-info" data-info><span class="date-info-icon">i</span><span class="date-info-tip">该日期取自原文网页的结构化数据或明确发布元数据（来源：{{ article.date_source }}），是新闻的实际发布时间。</span></span></div>
+      <div>{{ article.published_at[:10] }}<span class="date-info" data-info><svg class="date-info-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="4.7" r="0.9" fill="currentColor"/><path d="M8 7.4V11.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span class="date-info-tip">该日期取自原文网页的发布时间标记，是新闻的实际发布日。</span></span></div>
     {% elif article.display_date %}
       <div class="label">归档日期</div>
-      <div>{{ article.display_date }}（来源未核实）<span class="date-info" data-info><span class="date-info-icon">i</span><span class="date-info-tip">本篇信源未提供可靠的发布时间，此处显示系统抓取入库的日期，不是新闻发布日。精确时间请点原文链接核对。</span></span></div>
+      <div>{{ article.display_date }}（来源未核实）<span class="date-info" data-info><svg class="date-info-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="4.7" r="0.9" fill="currentColor"/><path d="M8 7.4V11.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span class="date-info-tip">本篇信源未提供可靠的发布时间，精确时间请点原文链接核对。</span></span></div>
     {% endif %}
     <div class="label">涉及公司</div><div>{{ article.companies|join("、") if article.companies else "未识别" }}</div>
   </div>

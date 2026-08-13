@@ -43,6 +43,15 @@ img{max-width:100%;height:auto;margin:18px 0}
 .view-toggle a:hover{color:var(--accent);border-bottom-color:var(--accent)}
 .view-toggle .active{color:var(--ink);font-weight:600;margin-left:8px}
 .translate-note{max-width:680px;margin:6px auto 0;font-size:12px;color:var(--muted);text-align:right}
+/* Date-source tooltip: :hover for desktop mouse, .open (JS-toggled) for
+   touch/tap. Both paths flip display:block via the same rule so touch
+   devices don't need CSS media queries to unlock the tip. */
+.date-info{display:inline-block;position:relative;margin-left:4px;vertical-align:middle;cursor:pointer}
+.date-info-icon{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border:1px solid var(--muted);color:var(--muted);border-radius:50%;font-size:10px;font-family:Georgia,serif;font-style:italic;line-height:1;user-select:none}
+.date-info-icon:hover{border-color:var(--accent);color:var(--accent)}
+.date-info-tip{display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:20;min-width:240px;max-width:320px;padding:10px 12px;background:#332f28;color:#f7f3ec;font-size:12px;line-height:1.65;border-radius:5px;box-shadow:0 4px 12px rgba(0,0,0,.18);white-space:normal;font-weight:400}
+.date-info-tip::before{content:"";position:absolute;top:-5px;left:12px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:5px solid #332f28}
+.date-info:hover .date-info-tip,.date-info.open .date-info-tip{display:block}
 .empty-body{max-width:640px;margin:20px auto;padding:18px 20px;background:#fff;border:1px dashed #cfc6b8;border-radius:5px;color:var(--muted);text-align:center;font-size:14px}
 .body-suppressed{max-width:640px;margin:20px auto;padding:16px 20px;background:#f7f3ec;border:1px solid var(--line);border-radius:5px;color:#5f5950;font-size:13.5px;line-height:1.8}
 .body-suppressed b{color:var(--ink)}
@@ -71,9 +80,11 @@ summary{cursor:pointer;font-weight:700}
     <div class="label">真实来源</div><div>{{ article.publisher or article.source_name or "未识别" }}</div>
     <div class="label">作者</div><div>{{ article.author or "未披露/未识别" }}</div>
     {% if article.date_is_verified %}
-      <div class="label">发布日期</div><div>{{ article.published_at[:10] }}</div>
+      <div class="label">发布日期</div>
+      <div>{{ article.published_at[:10] }}<span class="date-info" data-info><span class="date-info-icon">i</span><span class="date-info-tip">该日期取自原文网页的结构化数据或明确发布元数据（来源：{{ article.date_source }}），是新闻的实际发布时间。</span></span></div>
     {% elif article.display_date %}
-      <div class="label">归档日期</div><div>{{ article.display_date }}（来源未核实）</div>
+      <div class="label">归档日期</div>
+      <div>{{ article.display_date }}（来源未核实）<span class="date-info" data-info><span class="date-info-icon">i</span><span class="date-info-tip">本篇信源未提供可靠的发布时间，此处显示系统抓取入库的日期，不是新闻发布日。精确时间请点原文链接核对。</span></span></div>
     {% endif %}
     <div class="label">涉及公司</div><div>{{ article.companies|join("、") if article.companies else "未识别" }}</div>
   </div>
@@ -146,6 +157,23 @@ summary{cursor:pointer;font-weight:700}
   <p><b>抓取时间：</b>{{ article.crawled_at or article.archived_at or '' }}</p>
 </details>
 
-<div class="notice">AI 状态、日期核实、正文完整性以顶部三个徽章为准。发布日期仅在来源为网页级结构化数据、明确发布元数据或标题附近带明确日期标签时才判为「已核实」；否则显示归档日期作为参考。关键数字请回到原文核验。</div>
+<div class="notice">发布日期仅在来源为网页级结构化数据、明确发布元数据或标题附近带明确日期标签时才判为「已核实」；否则显示归档日期作为参考。关键数字请回到原文核验。</div>
+<script>
+// Tap-to-toggle for [data-info] tooltips so touch devices can see them;
+// desktop still gets pure :hover via CSS. Click outside closes any open tip.
+(function(){
+  var tips = document.querySelectorAll('[data-info]');
+  tips.forEach(function(el){
+    el.addEventListener('click', function(e){
+      e.stopPropagation();
+      tips.forEach(function(other){ if(other !== el) other.classList.remove('open'); });
+      el.classList.toggle('open');
+    });
+  });
+  document.addEventListener('click', function(){
+    tips.forEach(function(el){ el.classList.remove('open'); });
+  });
+})();
+</script>
 </body>
 </html>

@@ -6,6 +6,7 @@ import re
 import time
 from datetime import datetime, timezone
 from difflib import SequenceMatcher
+from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
 import requests
@@ -349,6 +350,39 @@ def _extract_readable_text(html: str, url: str) -> str:
     return max(candidates, key=len, default="")
 
 
+_PAYWALL_MARKERS_CACHE: list[str] | None = None
+
+
+def _paywall_markers() -> list[str]:
+    """Lazy-load paywall markers from config/paywall_markers.json.
+    Cached at first call; edit-then-restart to pick up changes."""
+    global _PAYWALL_MARKERS_CACHE
+    if _PAYWALL_MARKERS_CACHE is None:
+        path = Path(__file__).resolve().parent.parent / "config/paywall_markers.json"
+        markers: list[str] = []
+        if path.exists():
+            try:
+                markers = json.loads(path.read_text(encoding="utf-8")).get("markers", []) or []
+            except Exception:
+                markers = []
+        _PAYWALL_MARKERS_CACHE = [m for m in markers if isinstance(m, str) and m.strip()]
+    return _PAYWALL_MARKERS_CACHE
+
+
+def _paywall_marker_hit(text: str) -> str:
+    """Return the matched marker (original casing) if any appears as a
+    case-insensitive substring, else ''. Distinct from 'summary_only'
+    (which is about length): a paywalled snippet may or may not be short,
+    what matters is the explicit signal that content is gated."""
+    if not text:
+        return ""
+    lower = text.lower()
+    for m in _paywall_markers():
+        if m.lower() in lower:
+            return m
+    return ""
+
+
 def _content_is_complete(text: str, expected_title: str = "") -> bool:
     compact = _clean(text)
     min_chars = int(os.getenv("CONTENT_MIN_CHARS", "500"))
@@ -396,7 +430,15 @@ def extract_article(url: str, expected_title: str = "") -> dict:
             result.update(metadata)
             text = _extract_readable_text(response.text, response.url)
             result["text"] = text
-            if _content_is_complete(text, expected_title):
+            # Paywall check runs BEFORE the length check: a paywall snippet
+            # may or may not be short, but the explicit "subscribe to read"
+            # signal is more informative than "text < 500 chars". Keeps the
+            # two states cleanly distinguishable in daily stats.
+            marker = _paywall_marker_hit(text)
+            if marker:
+                result["fetch_status"] = "paywalled"
+                result["fetch_error"] = f"付费墙关键词命中：{marker}"
+            elif _content_is_complete(text, expected_title):
                 result["fetch_status"] = "success"
                 result["fetch_error"] = ""
             else:

@@ -1,0 +1,10 @@
+{
+  "_comment": "网页正文里若出现下面任一片段（忽略大小写、子串匹配），标记为付费墙。fetch_status 记为 'paywalled'（区别于 'summary_only' 的正文过短），跳过 AI 摘要与翻译（省 API），检索页默认不列出。补充关键词直接编辑 markers 数组。",
+  "markers": [
+    "members only",
+    "subscribe to continue",
+    "sign in to read",
+    "this article is for subscribers",
+    "subscribers only"
+  ]
+}

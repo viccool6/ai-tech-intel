@@ -431,6 +431,30 @@ def _cli() -> int:
             trusted = [s["id"] for s in sources.get("sources", []) if s.get("trust_rss_date")]
             n = storage.promote_rss_dates(trusted)
             print(f"promote-rss done: {n} row(s) promoted; whitelist = {trusted}")
+        elif action == "paywall-backfill":
+            # Re-scan every non-failed row's stored article_text for paywall
+            # markers. Rows with fetch_status='failed' skipped (no body to scan);
+            # rows already 'paywalled' skipped. AI/translation columns left
+            # untouched — historical AI results from before we added the check
+            # stay in place; future paywalled rows won't have them.
+            from src.article_parser import _paywall_marker_hit
+            rows = storage.conn.execute(
+                "SELECT id, article_text FROM articles WHERE fetch_status IN ('success','summary_only')"
+            ).fetchall()
+            hits: list[tuple[int, str]] = []
+            for r in rows:
+                m = _paywall_marker_hit(r[1] or "")
+                if m:
+                    hits.append((r[0], m))
+            for aid, marker in hits:
+                storage.conn.execute(
+                    "UPDATE articles SET fetch_status='paywalled', fetch_error=? WHERE id=?",
+                    (f"backfill 付费墙关键词命中：{marker}", aid),
+                )
+            storage.conn.commit()
+            print(f"paywall backfill done: 扫描 {len(rows)} 行，命中 {len(hits)} 行")
+            for aid, marker in hits:
+                print(f"  id={aid}  marker={marker!r}")
         else:
             print(f"unknown action: {action}", file=sys.stderr)
             return 2

@@ -286,7 +286,7 @@ def main():
         print(f"翻译完成：成功{ok}篇｜部分{partial}篇｜失败{failed}篇｜跳过{skipped}篇｜合计{len(candidates)}篇")
         return 0
 
-    fetched=new=dup=content_fail=summary_only=translated_ok=translated_fail=0
+    fetched=new=dup=content_fail=summary_only=paywalled=translated_ok=translated_fail=0
     threshold=float(os.getenv("TITLE_SIMILARITY_THRESHOLD","0.88"))
     for source in sources:
         logging.info("抓取：%s",source.get("name"))
@@ -319,6 +319,16 @@ def main():
             item["fetch_status"]=parsed.get("fetch_status",""); item["fetch_error"]=parsed.get("fetch_error",""); item["link_resolver"]=parsed.get("link_resolver","")
             if item.get("fetch_status") == "summary_only":
                 summary_only+=1
+            # Paywalled: save the row (so tomorrow we don't fetch it again),
+            # but skip AI + translation to save API cost. Search page hides
+            # these by default; template.article still renders if a link is
+            # opened directly.
+            if item.get("fetch_status") == "paywalled":
+                paywalled+=1
+                logging.info("付费墙拦截 %s：%s", item.get("fetch_error",""), item.get("title_original","")[:60])
+                if not a.dry_run:
+                    storage.save(item); new+=1
+                continue
             if not item["article_text"] and not (env_bool("ALLOW_RSS_SUMMARY_FALLBACK",True) and item["rss_summary"]):
                 content_fail+=1; continue
             if a.dry_run:
@@ -337,7 +347,7 @@ def main():
             logging.info("归档 [%s分/%s] %s",item["score"],item["ai_status"],item["title_cn"])
     storage.close()
     print("\n===== 运行报告 =====")
-    print(f"抓取：{fetched}｜新增：{new}｜重复：{dup}｜完整正文不足：{summary_only}｜内容失败：{content_fail}")
+    print(f"抓取：{fetched}｜新增：{new}｜重复：{dup}｜完整正文不足：{summary_only}｜付费墙：{paywalled}｜内容失败：{content_fail}")
     print(f"翻译：{translated_ok}成功｜{translated_fail}失败或部分")
     print(f"数据库：{BASE/'data/news.db'}（Flask 站点：app.py）")
     if not any(os.getenv(name) for name in ("AI_API_KEY","OPENROUTER_API_KEY","OPENAI_API_KEY","DEEPSEEK_API_KEY","SILICONFLOW_API_KEY")) and not a.no_ai: print("提示：未配置AI_API_KEY或兼容供应商密钥，本次自动使用规则回退。")

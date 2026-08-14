@@ -57,7 +57,11 @@ def _sanitize_fts_snippet(text: str) -> str:
 
 
 def _build_filters(source: str, min_score: int, days: str, keyword: str) -> tuple[list[str], list]:
-    clauses: list[str] = []
+    # Always exclude paywalled rows — they have no AI summary or full body
+    # to display, and listing them wastes reader attention. They still exist
+    # in DB so tomorrow's fetch dedups against them; count them with:
+    #   SELECT COUNT(*) FROM articles WHERE fetch_status='paywalled'
+    clauses: list[str] = ["COALESCE(a.fetch_status,'') <> 'paywalled'"]
     params: list = []
     if source:
         clauses.append(f"{_SOURCE_EXPR} = ?")
@@ -294,7 +298,13 @@ def article_paragraphs(text: str) -> list[str]:
 
 
 def total_articles(db: sqlite3.Connection) -> int:
-    return db.execute("SELECT COUNT(*) FROM articles").fetchone()[0]
+    """Count the rows the search page can actually surface — paywalled rows
+    exist in DB (for dedup + stats) but the search filter hides them, so
+    including them in the top-of-page 「累计归档」 number would confuse the
+    reader. For raw DB total including paywalled, query articles table."""
+    return db.execute(
+        "SELECT COUNT(*) FROM articles WHERE COALESCE(fetch_status,'') <> 'paywalled'"
+    ).fetchone()[0]
 
 
 def latest_archived_at(db: sqlite3.Connection) -> str:

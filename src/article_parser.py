@@ -256,6 +256,15 @@ def _is_google_news_url(url: str) -> bool:
         return False
 
 
+def _is_bing_news_url(url: str) -> bool:
+    """Bing News redirect wrapper: http(s)://www.bing.com/news/apiclick.aspx?...&url=<encoded>"""
+    try:
+        p = urlparse(url)
+        return p.netloc.lower() in {"www.bing.com", "bing.com"} and p.path.startswith("/news/apiclick")
+    except Exception:
+        return False
+
+
 def _resolve_google_news_url(url: str) -> tuple[str, str]:
     """Resolve a Google News wrapper URL to the publisher URL.
 
@@ -278,6 +287,42 @@ def _resolve_google_news_url(url: str) -> tuple[str, str]:
         return url, "未安装googlenewsdecoder，请运行 pip install -r requirements.txt"
     except Exception as exc:
         return url, f"GoogleNewsDecodeError: {type(exc).__name__}: {exc}"
+
+
+def _resolve_bing_news_url(url: str) -> tuple[str, str]:
+    """Resolve a Bing News redirect wrapper to the publisher URL.
+
+    Bing embeds the real URL as a plain URL-encoded 'url' query param
+    (unlike Google's base64 obfuscation). Just parse_qs + unquote — no
+    external decoder needed.
+    """
+    if not _is_bing_news_url(url):
+        return url, ""
+    try:
+        from urllib.parse import parse_qs
+        qs = parse_qs(urlparse(url).query)
+        target = _clean((qs.get("url") or [""])[0])
+        if target and target.startswith(("http://", "https://")) and not _is_bing_news_url(target):
+            return target, "bing.apiclick"
+        return url, "无法从Bing News apiclick中解析url参数"
+    except Exception as exc:
+        return url, f"BingNewsDecodeError: {type(exc).__name__}: {exc}"
+
+
+def _resolve_redirect_url(url: str) -> tuple[str, str]:
+    """Dispatch to the right aggregator wrapper decoder. Returns
+    (resolved_url, note). note is empty when no wrapper was matched."""
+    if _is_google_news_url(url):
+        return _resolve_google_news_url(url)
+    if _is_bing_news_url(url):
+        return _resolve_bing_news_url(url)
+    return url, ""
+
+
+def _is_aggregator_wrapper(url: str) -> bool:
+    """Any known aggregator redirect wrapper — used to flag 'summary_only'
+    when unwrap failed and we're still on a wrapper page."""
+    return _is_google_news_url(url) or _is_bing_news_url(url)
 
 
 def _extract_readable_text(html: str, url: str) -> str:
@@ -324,17 +369,19 @@ def extract_article(url: str, expected_title: str = "") -> dict:
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.9,zh-CN;q=0.7",
     }
-    resolved_url, resolve_note = _resolve_google_news_url(url)
+    resolved_url, resolve_note = _resolve_redirect_url(url)
     result = {
         "final_url": resolved_url, "text": "", "main_image": "", "author": "",
         "author_status": "unknown",
         "publisher": "", "published_at": "",
         "date_source": "", "fetch_status": "failed", "fetch_error": "",
-        "link_resolver": "googlenewsdecoder" if resolved_url != url else "",
+        # resolve_note carries which decoder ran ('googlenewsdecoder' or
+        # 'bing.apiclick'); empty when the URL was already direct.
+        "link_resolver": resolve_note if resolved_url != url else "",
     }
-    if _is_google_news_url(resolved_url):
+    if _is_aggregator_wrapper(resolved_url):
         result["fetch_status"] = "summary_only"
-        result["fetch_error"] = resolve_note or "Google News中转链接未解析到媒体原文"
+        result["fetch_error"] = resolve_note or "聚合器中转链接未解析到原文"
         return result
     for attempt in range(retries + 1):
         try:

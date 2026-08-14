@@ -57,7 +57,8 @@
       "layer": "综合快讯兜底",
       "type": "google_news",
       "query": "HBM semiconductor when:1d",
-      "enabled": true
+      "enabled": true,
+      "requires_proxy": true
     },
     {
       "id": "google_cowos",
@@ -65,7 +66,8 @@
       "layer": "综合快讯兜底",
       "type": "google_news",
       "query": "CoWoS advanced packaging when:1d",
-      "enabled": true
+      "enabled": true,
+      "requires_proxy": true
     },
     {
       "id": "google_ai_capex",
@@ -73,7 +75,8 @@
       "layer": "综合快讯兜底",
       "type": "google_news",
       "query": "AI datacenter CapEx when:1d",
-      "enabled": true
+      "enabled": true,
+      "requires_proxy": true
     },
     {
       "id": "google_people",
@@ -81,6 +84,55 @@
       "layer": "关键人物动态",
       "type": "google_news",
       "query": "(\"Jensen Huang\" OR \"Sam Altman\" OR \"Dario Amodei\" OR \"Elon Musk\") AI when:1d",
+      "enabled": true,
+      "requires_proxy": true
+    },
+    {
+      "id": "bing_hbm",
+      "name": "Bing News · HBM",
+      "layer": "综合快讯兜底",
+      "type": "rss",
+      "url": "https://www.bing.com/news/search?q=HBM&format=RSS&mkt=en-us",
+      "enabled": true
+    },
+    {
+      "id": "bing_capex",
+      "name": "Bing News · AI CapEx",
+      "layer": "综合快讯兜底",
+      "type": "rss",
+      "url": "https://www.bing.com/news/search?q=AI+capex+data+center&format=RSS&mkt=en-us",
+      "enabled": true
+    },
+    {
+      "id": "bing_cowos",
+      "name": "Bing News · CoWoS",
+      "layer": "综合快讯兜底",
+      "type": "rss",
+      "url": "https://www.bing.com/news/search?q=CoWoS+advanced+packaging&format=RSS&mkt=en-us",
+      "enabled": true
+    },
+    {
+      "id": "bing_people",
+      "name": "Bing News · 关键人物",
+      "layer": "关键人物动态",
+      "type": "rss",
+      "url": "https://www.bing.com/news/search?q=Jensen+Huang%7CSam+Altman%7CLisa+Su&format=RSS&mkt=en-us",
+      "enabled": true
+    },
+    {
+      "id": "trendforce",
+      "name": "TrendForce Insights",
+      "layer": "深度产业分析",
+      "type": "rss",
+      "url": "https://insights.trendforce.com/feed",
+      "enabled": true
+    },
+    {
+      "id": "semiwiki",
+      "name": "SemiWiki",
+      "layer": "深度产业分析",
+      "type": "rss",
+      "url": "https://semiwiki.com/feed/",
       "enabled": true
     }
   ]

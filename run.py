@@ -102,6 +102,10 @@ def main():
         return 3
     if a.reset: reset(); logging.info("已清空 data/news.db（档案库/ 保留）")
     sources=[s for s in load_json(BASE/"config/sources.json").get("sources",[]) if s.get("enabled")]
+    # Publisher blacklist — RSS entries whose eventual target host matches
+    # any of these get dropped at fetch time (before AI/translation cost).
+    blacklist_path = BASE/"config/publisher_blacklist.json"
+    blacklist = load_json(blacklist_path).get("domains", []) if blacklist_path.exists() else []
     if a.source:
         sources=[s for s in sources if s.get("id")==a.source]
         if not sources: logging.error("找不到source id：%s",a.source); return 2
@@ -286,7 +290,7 @@ def main():
     threshold=float(os.getenv("TITLE_SIMILARITY_THRESHOLD","0.88"))
     for source in sources:
         logging.info("抓取：%s",source.get("name"))
-        items,warning=fetch_source(source,a.hours,a.max_items)
+        items,warning=fetch_source(source,a.hours,a.max_items,blacklist=blacklist)
         if warning: logging.warning("%s：%s",source.get("name"),warning)
         fetched+=len(items)
         for item in items:

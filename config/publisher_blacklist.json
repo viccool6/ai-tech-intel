@@ -1,0 +1,15 @@
+{
+  "_comment": "抓取时跳过这些域下的文章——散户投资分析站、内容农场，产业事实成分低。fetcher 在 RSS 解析阶段就丢弃，避免下游浪费 API 和存储。补充域名直接编辑 domains 数组即可，程序读取无需重启（但正在跑的 run.py 会用启动时快照）。",
+  "domains": [
+    "seekingalpha.com",
+    "invezz.com",
+    "msn.com",
+    "benzinga.com",
+    "fool.com",
+    "zacks.com",
+    "247wallst.com",
+    "stocktwits.com",
+    "marketbeat.com",
+    "barchart.com"
+  ]
+}

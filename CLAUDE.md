@@ -10,14 +10,22 @@
 
 ## 架构
 
+**Mac 生产 / Server 展示 分离**（当前部署模型，见 deploy.md）：
+- Mac 上 launchd 定时跑 `run.py`：抓取 + AI 摘要 + 翻译，写本地 SQLite
+- Mac 跑完 `VACUUM INTO` 生成快照，scp 到服务器
+- 服务器上一条 `mv` 原子替换 `data/news.db`；gunicorn 不用重启
+- 服务器 = 只读 Flask 站点 + nginx Basic Auth
+- 服务器上**不装** cron/timer；`deploy/ai-tech-intel.service+.timer` 留作备用（未来服务器网络通畅时可启用）
+
 | 层 | 组件 | 说明 |
 |---|---|---|
-| 采集入口 | `run.py` | 抓取 → 解析 → AI → 翻译 → 落库。cron 调度的唯一入口 |
-| Web 站点 | `app.py` (Flask) | 检索页 + 详情页；gunicorn 常驻，只监听 127.0.0.1:5000 |
+| 采集入口（Mac） | `run.py` | 抓取 → 解析 → AI → 翻译 → 落库。launchd 03:15 触发 `deploy/mac-daily.sh` |
+| 数据同步 | `deploy/mac-daily.sh` | VACUUM INTO 快照 + scp + ssh 原子 mv |
+| Web 站点（Server） | `app.py` (Flask) | 检索页 + 详情页；gunicorn 常驻，只监听 127.0.0.1:5000 |
 | 存储 | SQLite (`data/news.db`) + FTS5 影子表 | trigram 分词；WAL 模式；触发器保 matched_keywords/FTS 同步 |
-| AI | DeepSeek 官方 API | 摘要 = V4-Flash（¥1/¥2 per M）；翻译 = V4-Pro（¥3/¥6 per M） |
-| 反代 | nginx | Basic Auth 鉴权（`/etc/nginx/.htpasswd-ai-tech-intel`） |
-| 进程管理 | systemd | `ai-tech-intel-web.service`（gunicorn）+ `ai-tech-intel.timer`（cron） |
+| AI | DeepSeek 官方 API（仅 Mac 侧） | 摘要 = V4-Flash（¥1/¥2 per M）；翻译 = V4-Pro（¥3/¥6 per M） |
+| 反代（Server） | nginx | Basic Auth 鉴权（`/etc/nginx/.htpasswd-ai-tech-intel`） |
+| 进程管理（Server） | systemd | 只装 `ai-tech-intel-web.service`（gunicorn） |
 | 环境变量 | python-dotenv | app.py 和 run.py 都 `load_dotenv()`；systemd **不用** `EnvironmentFile`（USER_AGENT 有空格分号，systemd 解析会挂） |
 
 ## 已定决策及原因
@@ -97,6 +105,15 @@
 - 相关度打分：title 命中 +3、summary +2、正文 +1，同一字段命中只算一次（长文不因篇幅刷分）
 - 页面顶部有黄色 banner 提示"是 2 字词，已用全文模糊匹配"
 
+### JS-driven 付费墙检测不了（KED Global 类）
+- 付费墙检测（`config/paywall_markers.json` + `_paywall_marker_hit`）只对**文本型**付费墙有效——FT / WSJ / Bloomberg 等在 HTML 里写"members only / subscribe to continue"字样的
+- KED Global 之类用 JavaScript overlay 实现的付费墙，正文没有关键词字面，检测不到，会以 `fetch_status='summary_only'` 落库（正文 < 500 字），AI 摘要基于导语生成——摘要可能带偏
+- 尝试过的三个替代方案都不做：
+  - "summary_only 且 <500 字 且 无 rss_summary → 跳 AI"——会误伤真短消息
+  - 站点专属规则（`if host=='kedglobal.com' and len<500: paywalled`）——维护成本高
+  - Playwright 渲染 JS → 太重的依赖
+- 现状可接受：这类偏差在 `summary_only` 计数里显式可见，读者能看到"归档日期未核实"和低分标记，警觉性够
+
 ### `keyword_counts()` 是 O(N) SQL
 - 每个关键词一次 `LIKE '%|X|%'` 全表扫描；20 个词 → 20 次扫描
 - 当前 28 篇没问题；几千篇后会明显变慢
@@ -127,8 +144,9 @@
    - 追加 3 个直连源（The Decoder / TrendForce / SemiWiki）——URL 待用户提供
 
 ### 后续
-- `deploy.md` 部署手册（等 Bing 改造完再写）
-- 服务器首次上线部署
+- 服务器首次上线部署（按 `deploy.md` 一次性清单跑）
+- 观察 1-2 周 launchd 稳定性 + Bing 各源命中率 + DeepSeek 月账单
+- 视命中情况决定是否给 bing_people 拆成三个人物源（Bing OR 语法有限，pipe OR 返回结果偏旧）
 
 ## 常用命令速查
 

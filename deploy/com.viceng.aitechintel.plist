@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  macOS launchd 定时单元。用户级（LaunchAgent），不需要 root。
+  安装步骤（见 deploy.md 详解）：
+    1. 把两处 <APP_PATH_ON_MAC> 替换成你本机项目绝对路径（zsh：pwd 一下）
+    2. cp 到 ~/Library/LaunchAgents/
+    3. launchctl load ~/Library/LaunchAgents/com.viceng.aitechintel.plist
+    4. 立即试跑一次：launchctl start com.viceng.aitechintel
+
+  StartCalendarInterval 设 03:15 —— DeepSeek 平峰时段（00:30-08:30 CST）之内。
+  RunAtLoad=false，避免每次 login/reboot 意外触发一次抓取。
+  KeepAlive 不设，脚本一次性任务。
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.viceng.aitechintel</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string><APP_PATH_ON_MAC>/deploy/mac-daily.sh</string>
+  </array>
+
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key><integer>3</integer>
+    <key>Minute</key><integer>15</integer>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <false/>
+
+  <!-- launchd 自己的 stdout/stderr。脚本内部也追加了 data/logs/mac-daily.log，
+       两处日志互为备份：脚本日志有时间戳更好读，launchd 日志能看到脚本自身崩溃。 -->
+  <key>StandardOutPath</key>
+  <string><APP_PATH_ON_MAC>/data/logs/launchd.out</string>
+  <key>StandardErrorPath</key>
+  <string><APP_PATH_ON_MAC>/data/logs/launchd.err</string>
+
+  <!-- WorkingDirectory 让相对路径解析正确，虽然脚本第一行已 cd -->
+  <key>WorkingDirectory</key>
+  <string><APP_PATH_ON_MAC></string>
+
+  <!-- 关键：让 scp/ssh 用到 login shell 的 PATH（Homebrew、.env 之类）。
+       macOS launchd 默认 PATH 极简，不含 /usr/local/bin 等。 -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+</dict>
+</plist>

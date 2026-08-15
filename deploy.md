@@ -96,6 +96,17 @@ cp deploy/com.viceng.aitechintel.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.viceng.aitechintel.plist
 ```
 
+### 1.4 手动启动器（可选，非日常必需）
+
+项目根目录有两个 `.command` 文件，Finder 双击即可运行：
+- `抓取今日新闻.command` —— 备份 DB + `run.py --hours 24`。**launchd 装好后
+  日常抓取自动跑，这个只做补跑/调试**（例如白天临时想拉一次最新的、或者
+  测试改完 prompt 的效果）。
+- `打开网站.command` —— 起本地 Flask + 打开浏览器看检索页，用于开发预览。
+
+两个文件里 Python 路径是 `/Library/Frameworks/Python.framework/Versions/3.14/bin/python3.14`，
+换机器/换 Python 版本要按本机改。仅 macOS 用，服务器上不放。
+
 ## 二、服务器端首次部署
 
 ### 2.1 系统包

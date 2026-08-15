@@ -148,6 +148,15 @@
 - 观察 1-2 周 launchd 稳定性 + Bing 各源命中率 + DeepSeek 月账单
 - 视命中情况决定是否给 bing_people 拆成三个人物源（Bing OR 语法有限，pipe OR 返回结果偏旧）
 
+## Mac 端双击启动器
+
+项目根目录有两个 `.command` 文件，Finder 双击即可运行（仅 Mac 用，路径写死了本机
+Python，服务器上不用）：
+- `抓取今日新闻.command` —— 备份 DB + `run.py --hours 24` + 等回车。装 launchd
+  后（`deploy/com.viceng.aitechintel.plist`）日常抓取会自动跑，这个手动启动器
+  只做补跑或调试
+- `打开网站.command` —— 起本地 Flask + 打开浏览器看检索页
+
 ## 常用命令速查
 
 ```bash

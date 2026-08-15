@@ -24,41 +24,51 @@ Google News 在服务器上不通、OpenAI 有 Cloudflare 403，这些坑在 Mac
 
 ## 一、Mac 端配置
 
-### 1.1 前置：确认 SSH 免密到服务器可用
+### 1.1 前置：SSH 别名 + Keychain
 
+服务器**不支持密码登录**。管理员已将 `~/.ssh/seventharea_ed25519.pub` 部署到服务器，本地私钥文件是 `~/.ssh/seventharea_ed25519`。以下步骤配好别名并让 launchd 触发的脚本也能用到它。
+
+**a. 配 `~/.ssh/config`**（追加，如无此文件则新建；权限 `chmod 600`）：
+```
+Host seventharea
+    HostName 106.12.173.165
+    User jiantouhuagongshixi
+    IdentityFile ~/.ssh/seventharea_ed25519
+    IdentitiesOnly yes
+```
+
+**b. 验证连通**：
 ```zsh
-ssh <SERVER_SSH_USER>@<SERVER_HOST> "echo ok"
+ssh seventharea "echo ok && hostname"
 # 期望：ok
+#       <服务器主机名>
 ```
 
-如果还没配 key：
+**c. Key 装进 macOS Keychain**（launchd 触发 mac-daily.sh 时不继承交互 shell 的 ssh-agent，不装进 Keychain 就会因为找不到 key 而失败）：
 ```zsh
-ssh-keygen -t ed25519 -C "$USER@$(hostname -s)"        # 一路回车
-ssh-copy-id <SERVER_SSH_USER>@<SERVER_HOST>
+ssh-add --apple-use-keychain ~/.ssh/seventharea_ed25519
 ```
 
-launchd 触发 mac-daily.sh 时**不会**继承交互式 shell 的 ssh-agent。两种解法：
-- **推荐**：把 SSH key 加进 macOS Keychain：`ssh-add --apple-use-keychain ~/.ssh/id_ed25519`（一次生效）
-- 或者用无密码 key（安全性略弱，看你）
+之后所有命令统一用别名 `seventharea`，不要写裸 IP/用户名。
 
 ### 1.2 编辑 `deploy/mac-daily.sh`
 
-替换三处占位符：
+配好 §1.1 别名后，`SERVER` 直接填 `seventharea`（ssh 会自动读 config 里的 HostName / User / IdentityFile）：
 ```bash
-SERVER="<SERVER_SSH_USER>@<SERVER_HOST>"
-REMOTE_DATA="<APP_PATH_ON_SERVER>/data"
+SERVER="seventharea"
+REMOTE_DATA="<APP_PATH_ON_SERVER>/data"   # 待项目负责人指定正式目录后填入
 ```
 
 改完手动跑一次验证：
 ```zsh
 ./deploy/mac-daily.sh
 tail -30 data/logs/mac-daily.log
-# 期望最后一行：SUCCESS 2026-08-14 15:30:12
+# 期望最后一行：SUCCESS 2026-08-15 15:30:12
 ```
 
 服务器上确认数据到位：
 ```zsh
-ssh <SERVER_SSH_USER>@<SERVER_HOST> \
+ssh seventharea \
   "sqlite3 <APP_PATH_ON_SERVER>/data/news.db 'SELECT COUNT(*) FROM articles'"
 ```
 
@@ -95,25 +105,75 @@ sudo apt install -y python3.12 python3.12-venv python3-pip \
                     sqlite3 nginx apache2-utils git
 ```
 
-### 2.2 拉代码 + venv
+### 2.2 目录 + 代码 + venv
+
+> ⚠️ **正式部署目录待定**：`<APP_PATH_ON_SERVER>` 需由项目负责人指定，先确认再执行下面的命令，不要自作主张选 `/var/www` 或 `/opt`。以下用 `<APP_PATH_ON_SERVER>` 作占位符。
+
+> ⚠️ **`<SYSTEM_USER>` 必须等于 SSH 登录用户**（即 `jiantouhuagongshixi`）。gunicorn.service 里的 `User=<SYSTEM_USER>` 要跟传数据库的用户一致，否则 Mac 上传过来的 `news.db` 属主是 `jiantouhuagongshixi`，而 Flask 以别的用户运行时读不到（权限 600）。
+
+**a. 建目录**：
 ```bash
-# 目录结构（示例）
-sudo mkdir -p /var/www/ai-tech-intel
-sudo chown $USER:$USER /var/www/ai-tech-intel
-cd /var/www/ai-tech-intel
+sudo mkdir -p <APP_PATH_ON_SERVER>
+sudo chown jiantouhuagongshixi:jiantouhuagongshixi <APP_PATH_ON_SERVER>
+cd <APP_PATH_ON_SERVER>
+```
 
-git clone <REPO_URL> .
+**b. 代码上传 — 二选一**：
 
-python3 -m venv .venv
-.venv/bin/pip install --upgrade pip
-.venv/bin/pip install -r requirements.txt
+**方案 A（推荐 · Git 私有仓库）**。适合以后代码有更新，`git pull` 即可。
+```bash
+# 前置：Mac 上先把本地仓库推到 GitHub 私有 repo
+# 在 https://github.com/new 建 private repo；不要初始化 README
+# 然后在 Mac 项目根：
+git remote add origin git@github.com:<GITHUB_USER>/<REPO_NAME>.git
+git branch -M main
+git push -u origin main
+
+# 服务器 deploy key（read-only）
+ssh seventharea "ssh-keygen -t ed25519 -N '' -f ~/.ssh/gh_deploy -C 'deploy-key'"
+ssh seventharea "cat ~/.ssh/gh_deploy.pub"
+# 把输出的公钥贴到 GitHub repo 的 Settings → Deploy keys → Add key（只勾 Read access）
+
+# 服务器 SSH 配置认 GitHub
+ssh seventharea 'cat >> ~/.ssh/config <<EOF
+Host github.com
+    IdentityFile ~/.ssh/gh_deploy
+    IdentitiesOnly yes
+EOF
+chmod 600 ~/.ssh/config'
+
+# 服务器上 clone
+ssh seventharea "cd <APP_PATH_ON_SERVER> && git clone git@github.com:<GITHUB_USER>/<REPO_NAME>.git ."
+```
+
+**方案 B（直接 rsync，不用 git）**。适合暂时不想开 GitHub 仓库、代码改动频率极低的场景。
+```zsh
+# Mac 上：一次性同步（排除 venv、DB、日志、缓存）
+rsync -avz --delete \
+  --exclude='.venv' --exclude='data/news.db*' --exclude='data/logs' \
+  --exclude='__pycache__' --exclude='.git' --exclude='*.bak' \
+  ./ seventharea:<APP_PATH_ON_SERVER>/
+```
+以后每次改代码要重新跑一次 rsync（等于手动"pull"）。这个路径没有版本历史保护，代码回滚只能靠 Mac 端 git。
+
+**c. venv + 依赖**：
+```bash
+ssh seventharea "cd <APP_PATH_ON_SERVER> && \
+  python3 -m venv .venv && \
+  .venv/bin/pip install --upgrade pip && \
+  .venv/bin/pip install -r requirements.txt"
+```
+
+**d. 建 data 目录**（`.gitignore` 里所以 clone 后不存在，scp DB 之前必须先建）：
+```bash
+ssh seventharea "mkdir -p <APP_PATH_ON_SERVER>/data/logs"
 ```
 
 ### 2.3 首份 DB 从 Mac 传过去
 ```zsh
 # 在 Mac 上
 sqlite3 data/news.db "VACUUM INTO 'data/news.db.snapshot'"
-scp data/news.db.snapshot <SERVER_SSH_USER>@<SERVER_HOST>:/var/www/ai-tech-intel/data/news.db
+scp data/news.db.snapshot seventharea:<APP_PATH_ON_SERVER>/data/news.db
 ```
 
 ### 2.4 .env（服务器版本可以很短）
@@ -146,6 +206,10 @@ sudo systemctl status ai-tech-intel-web
 sudo htpasswd -c /etc/nginx/.htpasswd-ai-tech-intel <USERNAME>
 # 输入密码
 
+# 禁用 Ubuntu 默认站点。deploy/nginx.conf 用了 default_server，
+# 与自带的 /etc/nginx/sites-enabled/default 冲突会让 nginx -t 直接失败。
+sudo rm -f /etc/nginx/sites-enabled/default
+
 # 装 server block
 sudo cp deploy/nginx.conf /etc/nginx/sites-available/ai-tech-intel
 sudo ln -s /etc/nginx/sites-available/ai-tech-intel /etc/nginx/sites-enabled/
@@ -153,7 +217,29 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-浏览器打开 `http://<SERVER_HOST>/`，输入 htpasswd 里的用户名密码。应看到检索页 + 目前的文章。
+### 2.7 先本机 curl 验证
+
+在公网 80 端口放行到位之前（见 §2.8），站点只能从服务器本机访问：
+```bash
+ssh seventharea "curl -sI http://127.0.0.1/ -u <USERNAME>:<PASSWORD>"
+# 期望：HTTP/1.1 200 OK
+ssh seventharea "curl -s http://127.0.0.1/ -u <USERNAME>:<PASSWORD> | head -30"
+# 期望：检索页 HTML 开头
+```
+不带 `-u` 应收到 `HTTP/1.1 401 Unauthorized`——说明 Basic Auth 正在工作。
+
+### 2.8 公网 80 端口放行（需项目负责人批准）
+
+服务器所在网络的安全组/防火墙策略由项目负责人统一管理，**你不能自己 `ufw` 或 `iptables` 改规则**。
+
+**申请内容**：
+- 目标：`106.12.173.165`
+- 端口：`80/tcp`
+- 方向：入站（inbound）
+- 源 IP：暂按"任意"申请，后续需要收紧再改；或先只白名单你办公 IP
+- 备注：AI 产业链新闻监测系统私有检索站，nginx 层已启用 Basic Auth
+
+**放行到位后**从浏览器打开 `http://106.12.173.165/`，弹 Basic Auth 输入 htpasswd 里的用户名密码，应看到检索页。
 
 ## 三、Flask 连接 DB 的行为（为什么不用重启）
 
@@ -240,7 +326,7 @@ DeepSeek 后台账单页可以核对。
 **每月一次**
 - 清 90 天前手动备份：`ls data/news.db.bak-* | ...`（自动化可选）
 - 检查 Bing 源命中率：`sqlite3 data/news.db "SELECT source_id, COUNT(*) FROM articles WHERE source_id LIKE 'bing_%' AND archived_at > DATE('now','-30 days') GROUP BY source_id"` — 长期 0 的可以删
-- 服务器磁盘：`ssh server "df -h /var/www"`
+- 服务器磁盘：`ssh seventharea "df -h <APP_PATH_ON_SERVER>"`
 - DeepSeek 账单页对账：目标场景 B ≤ ¥20/月
 
 **每季度**
@@ -256,7 +342,7 @@ Mac 侧：
 
 服务器侧：
 - 服务器上的 DB 只是 Mac 的复制品，丢了不心疼——从 Mac 重传一份即可
-- 但可以在服务器上加个周备份：`ssh server "sqlite3 data/news.db \"VACUUM INTO 'data/news.db.weekly-\$(date +%V).snapshot'\""`
+- 但可以在服务器上加个周备份：`ssh seventharea "cd <APP_PATH_ON_SERVER> && sqlite3 data/news.db \"VACUUM INTO 'data/news.db.weekly-\$(date +%V).snapshot'\""`
 
 恢复：
 ```zsh
@@ -267,18 +353,25 @@ cp data/news.db.bak-YYYYMMDD data/news.db
 
 ## 七、变更工作流（改了代码怎么上）
 
-1. Mac 本地改代码 + 测试
-2. `git commit` + `git push`
-3. 服务器：
-   ```bash
-   cd /var/www/ai-tech-intel
-   git pull
-   .venv/bin/pip install -r requirements.txt  # 如依赖变了
-   sudo systemctl restart ai-tech-intel-web
-   ```
-4. 浏览器验证
+1. Mac 本地改代码 + 测试 + `git commit`
 
-**配置文件（sources.json / watch_keywords.json / paywall_markers.json）** 只在 Mac 上有意义——它们决定抓什么。服务器上的这些文件不生效（因为服务器不跑 run.py）。但仍要 pull 保证代码引用一致。
+2. 走 §2.2 定的部署方案：
+   - **方案 A（Git）**：`git push`；服务器 `ssh seventharea "cd <APP_PATH_ON_SERVER> && git pull"`
+   - **方案 B（rsync）**：Mac 上再跑一次 §2.2 里的 rsync 命令
+
+3. 如依赖变了：
+   ```bash
+   ssh seventharea "cd <APP_PATH_ON_SERVER> && .venv/bin/pip install -r requirements.txt"
+   ```
+
+4. 重启 web 服务：
+   ```bash
+   ssh seventharea "sudo systemctl restart ai-tech-intel-web"
+   ```
+
+5. 浏览器验证
+
+**配置文件（sources.json / watch_keywords.json / paywall_markers.json）** 只在 Mac 上有意义——它们决定抓什么。服务器上的这些文件不生效（因为服务器不跑 run.py）。但仍要同步保证代码引用一致。
 
 ## 八、TLS 后续
 
@@ -289,16 +382,27 @@ cp data/news.db.bak-YYYYMMDD data/news.db
 
 ## 九、一次性问题清单（第一次装的时候会碰到）
 
-- [ ] Mac SSH key 免密到服务器 OK
-- [ ] `~/.ssh/config` 有 alias（可选，比裸 IP/user 好记）
-- [ ] Mac 上 `ssh-add --apple-use-keychain` 加载了 key（launchd 需要）
-- [ ] 服务器时区：`ssh server "timedatectl"`——检索页的日期依赖它
-- [ ] 服务器 SQLite 版本：`ssh server "sqlite3 --version"` ≥ 3.34
-- [ ] 服务器 Python 版本：3.12+ (Ubuntu 24.04 自带)
-- [ ] nginx server block 里 `<DOMAIN>` 已改（当前用 `default_server`，无需域名）
+### 前置沟通（不做完不要动手）
+- [ ] 从项目负责人处确认 `<APP_PATH_ON_SERVER>` 正式目录（不要自己决定 `/var/www` 之类）
+- [ ] 从项目负责人处提交 80 端口安全组放行申请（见 §2.8），拿到批准回执
+
+### Mac 端
+- [ ] `~/.ssh/config` 里配好 `Host seventharea` 别名（HostName / User / IdentityFile）
+- [ ] `ssh seventharea "echo ok"` 正常返回
+- [ ] `ssh-add --apple-use-keychain ~/.ssh/seventharea_ed25519` 已跑（launchd 需要 Keychain 里的 key）
+- [ ] `deploy/mac-daily.sh` 里 `REMOTE_DATA` 已填正式路径，`SERVER="seventharea"`
+- [ ] `deploy/com.viceng.aitechintel.plist` 里三处 `<APP_PATH_ON_MAC>` 已替换
+- [ ] 第一次 `./deploy/mac-daily.sh` 手动跑成功，`tail data/logs/mac-daily.log` 最后一行是 `SUCCESS ...`
+
+### 服务器端
+- [ ] `<SYSTEM_USER>` **等于** SSH 登录用户 `jiantouhuagongshixi`（gunicorn.service 里的 User=）
+- [ ] 服务器时区：`ssh seventharea "timedatectl"` 应显示 `Asia/Shanghai`
+- [ ] 服务器 SQLite 版本：`ssh seventharea "sqlite3 --version"` ≥ 3.34
+- [ ] 服务器 Python 版本：`ssh seventharea "python3 --version"` ≥ 3.12（Ubuntu 24.04 自带）
+- [ ] `<APP_PATH_ON_SERVER>/data/logs` 已建（.gitignore 里所以 clone/rsync 不会带过来）
+- [ ] `<APP_PATH_ON_SERVER>/.env` 已从 `.env.example` 复制并按 §2.4 精简
+- [ ] `gunicorn.service` 里 `<SYSTEM_USER>` / `<APP_PATH>` 已替换、`sudo systemctl status ai-tech-intel-web` = active
+- [ ] `/etc/nginx/sites-enabled/default` 已删（避免与 `default_server` 冲突）
 - [ ] Basic Auth 密码复杂度：至少 16 字符（这是唯一防线）
-- [ ] launchd plist 里 `<APP_PATH_ON_MAC>` 已替换
-- [ ] mac-daily.sh 里 `<SERVER_SSH_USER>/<SERVER_HOST>/<APP_PATH_ON_SERVER>` 已替换
-- [ ] gunicorn.service 里 `<SYSTEM_USER>/<APP_PATH>` 已替换
-- [ ] 第一次 `./deploy/mac-daily.sh` 手动跑成功
-- [ ] 浏览器打开 nginx 站点，Basic Auth 弹窗后能看到文章
+- [ ] 本机 curl 验证通过：`ssh seventharea "curl -sI http://127.0.0.1/ -u <USER>:<PASS>"` = 200
+- [ ] 安全组批准后，浏览器打开 `http://106.12.173.165/` 能看到检索页

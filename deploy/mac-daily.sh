@@ -5,8 +5,11 @@
 # 服务器上 gunicorn 保持运行；scp 完之后一条 mv 命令原子替换 news.db，
 # 已开的 gunicorn 请求继续用旧 inode，新请求打开新文件——无需重启服务。
 #
-# 用前替换三处占位符 <SERVER_SSH_USER> / <SERVER_HOST> / <APP_PATH_ON_SERVER>。
-# 假设 SSH key 已配好、ssh-agent 已加载，脚本本身不管密码交互。
+# 用前：
+#   - 确认 ~/.ssh/config 里已配 Host seventharea（见 deploy.md §1.1）
+#   - 把 REMOTE_DATA 里的 <APP_PATH_ON_SERVER> 换成项目负责人指定的正式目录
+#   - key 已用 ssh-add --apple-use-keychain 加进 macOS Keychain，
+#     launchd 才能免密登录（不装 Keychain 会因找不到 key 失败）
 
 set -euo pipefail
 
@@ -38,7 +41,7 @@ snap_size=$(stat -f%z data/news.db.snapshot)
 echo "    snapshot 大小: $snap_size bytes"
 
 # --- 3. scp 到服务器（先落到 .new，防止半传输被 Flask 读到）---
-SERVER="<SERVER_SSH_USER>@<SERVER_HOST>"
+SERVER="seventharea"
 REMOTE_DATA="<APP_PATH_ON_SERVER>/data"
 
 echo "[step 3/4] scp → $SERVER:$REMOTE_DATA/news.db.new"

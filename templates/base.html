@@ -80,7 +80,14 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,su
 
 /* ============================ masthead ============================ */
 .masthead{background:var(--ink);color:var(--on-dark);border-bottom:3px solid var(--accent)}
-.masthead-inner{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;padding:16px 0 14px}
+/* Horizontal padding must be repeated here: this element also carries .wrap,
+   and a `padding` shorthand resets all four sides — writing `16px 0 14px`
+   silently cancelled .wrap's `0 20px`, so the masthead text sat flush against
+   the container edge (and against the screen edge on narrow windows). */
+.masthead-inner{
+  display:flex;align-items:baseline;column-gap:14px;row-gap:6px;flex-wrap:wrap;
+  padding:16px 20px 14px;min-width:0
+}
 .masthead-title{font-family:var(--serif);font-size:22px;font-weight:700;letter-spacing:.06em;color:#fff;margin:0}
 .masthead-title a{color:inherit}
 .masthead-kicker{

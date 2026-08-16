@@ -22,6 +22,7 @@
 | 采集入口（Mac） | `run.py` | 抓取 → 解析 → AI → 翻译 → 落库。launchd 03:15 触发 `deploy/mac-daily.sh` |
 | 数据同步 | `deploy/mac-daily.sh` | VACUUM INTO 快照 + scp + ssh 原子 mv |
 | Web 站点（Server） | `app.py` (Flask) | 检索页 + 详情页；gunicorn 常驻，只监听 127.0.0.1:5000 |
+| 模板（Server） | `templates/base.html` | 设计变量 + 报头 + 共用组件；`search.html` / `article.html` 都 `extends` 它。**没有 static/ 目录**，CSS/JS 全内联在模板里，nginx 不需要加 location 规则 |
 | 存储 | SQLite (`data/news.db`) + FTS5 影子表 | trigram 分词；WAL 模式；触发器保 matched_keywords/FTS 同步 |
 | AI | DeepSeek 官方 API（仅 Mac 侧） | 摘要 = V4-Flash（¥1/¥2 per M）；翻译 = V4-Pro（¥3/¥6 per M） |
 | 反代（Server） | nginx | Basic Auth 鉴权（`/etc/nginx/.htpasswd-ai-tech-intel`） |
@@ -131,6 +132,13 @@
 - 详情页：低分不展开、双语切换、ⓘ 日期溯源、规则回退明示、SVG 图标
 - 关键修复：DeepSeek 400、破坏性 `--no-ai` 守卫、JSON-LD publisher URL 泄漏、trust_rss_date 白名单、author_status 三值区分（named / institutional / unknown）
 - Deploy 配置：`deploy/gunicorn.service` + `deploy/ai-tech-intel.service+.timer` + `deploy/nginx.conf`，全用 `<SYSTEM_USER>` / `<APP_PATH>` / `<DOMAIN>` 占位符
+- **第 6 轮 UI 改造**（纯模板层，未动 `app.py` / `src/`）：抽出 `base.html`；检索页表格改卡片流；新增当前条件回显、密度切换、`/` 聚焦、排序/密度 sticky 工具条；详情页新增阅读进度条、滚动吸顶标题、中英切换改前端即时切换（保留链接兜底）、正文字号调节、复制摘要/链接。旧模板留在 `templates/*.html.orig` 作对照，确认后可删
+
+### UI 层已定决策
+- **不建 `static/` 目录**：CSS/JS 继续内联在模板里。理由是 nginx 现在把 `/` 全量 proxy 给 gunicorn，加静态目录就要同步改 nginx location + 部署手册，收益不值
+- **卡片流取代表格**：旧 5 列表格在窄屏要 `min-width:850px` 横向滚动；卡片把评分放左轨、标题摘要走阅读列、信源/产业链/公司压到脚注条
+- **所有 JS 都是渐进增强**：密度、字号、中英切换、复制在 JS 关掉时页面依然可读可用（中英切换保留 `?view=` 链接兜底）
+- **动效统一走 `--dur` / `--ease` 两个变量**，并有 `prefers-reduced-motion` 兜底
 
 ### 正在推进：服务器可达信源改造
 1. **Bing News HBM 单源已验证**（uncommitted，待用户批准）：

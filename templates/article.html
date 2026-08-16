@@ -1,79 +1,147 @@
-<!doctype html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{{ article.title_cn or article.title_original }}</title>
-<style>
-:root{--ink:#24221f;--muted:#777166;--paper:#faf8f4;--line:#ded8cc;--accent:#b5372e}
-*{box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;max-width:920px;margin:auto;padding:34px 22px;color:var(--ink);background:var(--paper);line-height:1.85}
-h1,h2{font-family:"Songti SC",serif}
-h1{font-size:29px;line-height:1.45;margin:18px 0 4px}
-h2{font-size:18px;margin:28px 0 10px}
-.en-title{color:#8b857a;font-size:14px;margin-bottom:22px}
-.back{font-size:13px;margin-bottom:12px}
-.back a{color:var(--accent);text-decoration:none}
-.back a:hover{text-decoration:underline}
-a{color:var(--accent)}
-.meta{border-top:2px solid var(--ink);border-bottom:1px solid var(--line);padding:12px 0;font-size:13px;color:#777166}
-.badge{display:inline-block;color:#fff;background:#c0392b;padding:2px 10px;font-weight:700;border-radius:3px}
-.score4{background:#d68a2c}.score3{background:#b29c3f}.score2{background:#8b857a}.score1{background:#bcb4a8;color:#332f28}
-.tag{display:inline-block;border:1px solid #d9d2c6;padding:0 8px;margin:3px;border-radius:3px;font-size:12px}
-.keyword{display:inline-block;background:#fff2a8;padding:0 8px;margin:3px;border-radius:3px;font-size:12px;color:#514719}
-.source-card{background:#fff;border:1px solid var(--line);border-radius:6px;padding:14px 16px;margin:18px 0}
-.source-grid{display:grid;grid-template-columns:120px 1fr;gap:7px 12px;font-size:13px}
-.label{color:var(--muted)}
-.original-button{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;padding:9px 15px;border-radius:5px;font-weight:700;margin-top:12px}
-.summary{background:#f1ede5;border:1px solid var(--line);padding:18px 20px;margin:24px 0;border-radius:5px}
-.reason{border-top:1px dashed #d5cec2;border-bottom:1px dashed #d5cec2;padding:11px 0;color:#a73d31;font-size:13px}
-img{max-width:100%;height:auto;margin:18px 0}
-.article-body{max-width:680px;margin:20px auto 30px;color:#2d2a25}
-/* Bilingual pair styling from 归档模板/单篇归档模板.html:
-   English lead paragraph in Georgia italic grey, immediately followed by
-   its Chinese translation tightly beneath so the eye can zip line-by-line.
-   .zh margin-bottom carries the paragraph gap so the .en of the next pair
-   sits far enough from the previous .zh. */
-.article-body .en{font-family:Georgia,"Times New Roman",serif;font-style:italic;color:#9a9382;font-size:13.5px;line-height:1.85;margin:18px 0 3px}
-.article-body .zh{font-size:16.5px;line-height:2;color:#232323;margin:3px 0 20px}
-.article-body.only-cn .zh{margin-top:0}
-.article-body.only-cn p:first-child{margin-top:0}
-.view-toggle{max-width:680px;margin:14px auto 0;font-size:12px;color:var(--muted);text-align:right}
-.view-toggle a{color:var(--muted);text-decoration:none;border-bottom:1px dotted transparent;margin-left:8px}
-.view-toggle a:hover{color:var(--accent);border-bottom-color:var(--accent)}
-.view-toggle .active{color:var(--ink);font-weight:600;margin-left:8px}
-.translate-note{max-width:680px;margin:6px auto 0;font-size:12px;color:var(--muted);text-align:right}
-/* Date-source tooltip: :hover for desktop mouse, .open (JS-toggled) for
-   touch/tap. Both paths flip display:block via the same rule so touch
-   devices don't need CSS media queries to unlock the tip. */
-.date-info{display:inline-block;position:relative;margin-left:4px;cursor:pointer;color:var(--muted)}
-.date-info:hover{color:var(--ink)}
-/* SVG replaces the Unicode ⓘ — the character rendered chunky and vertically
-   off on macOS. currentColor lets .date-info's color drive both circle and i. */
-.date-info-icon{display:inline-block;vertical-align:-0.2em;width:14px;height:14px}
-.date-info-tip{display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:20;min-width:240px;max-width:320px;padding:10px 12px;background:#332f28;color:#f7f3ec;font-size:12px;line-height:1.65;border-radius:5px;box-shadow:0 4px 12px rgba(0,0,0,.18);white-space:normal;font-weight:400}
-.date-info-tip::before{content:"";position:absolute;top:-5px;left:12px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:5px solid #332f28}
-.date-info:hover .date-info-tip,.date-info.open .date-info-tip{display:block}
-.empty-body{max-width:640px;margin:20px auto;padding:18px 20px;background:#fff;border:1px dashed #cfc6b8;border-radius:5px;color:var(--muted);text-align:center;font-size:14px}
-.body-suppressed{max-width:640px;margin:20px auto;padding:16px 20px;background:#f7f3ec;border:1px solid var(--line);border-radius:5px;color:#5f5950;font-size:13.5px;line-height:1.8}
+{% extends "base.html" %}
+{% block title %}{{ article.title_cn or article.title_original }}{% endblock %}
+{% block body_class %}page-article{% endblock %}
+
+{% block extra_style %}
+.wrap{max-width:880px}
+
+/* ---- reading progress + sticky mini-header (appear after the title scrolls off) ---- */
+.progress{position:fixed;top:0;left:0;height:2px;width:0;background:var(--accent);z-index:60;transition:width .08s linear}
+.sticky-bar{
+  position:fixed;top:0;left:0;right:0;z-index:55;
+  background:rgba(250,248,244,.94);backdrop-filter:saturate(1.4) blur(10px);
+  border-bottom:1px solid var(--line);
+  transform:translateY(-100%);transition:transform var(--dur) var(--ease)
+}
+.sticky-bar.show{transform:translateY(0)}
+.sticky-inner{max-width:880px;margin:0 auto;padding:9px 20px;display:flex;align-items:center;gap:11px}
+.sticky-title{
+  font-family:var(--serif);font-size:14px;font-weight:600;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.sticky-bar .badge{font-size:12px;flex:none}
+.sticky-back{font-size:13px;color:var(--muted);flex:none}
+.sticky-back:hover{color:var(--accent)}
+
+.back{font-size:13px;margin:18px 0 14px}
+.back a{color:var(--muted);display:inline-flex;align-items:center;gap:5px;transition:color var(--dur) var(--ease),gap var(--dur) var(--ease)}
+.back a:hover{color:var(--accent);gap:8px}
+
+/* ---- headline block ---- */
+.head-meta{
+  display:flex;align-items:center;gap:7px;flex-wrap:wrap;
+  border-top:2px solid var(--ink);padding-top:13px
+}
+.fallback-tag{
+  display:inline-block;padding:2px 8px;font-size:11.5px;font-weight:600;
+  color:#7a5b18;background:#fbf1d6;border:1px solid #e0c46c;border-radius:var(--r-sm)
+}
+h1{font-family:var(--serif);font-size:31px;line-height:1.42;margin:16px 0 6px;letter-spacing:-.01em}
+.en-title{
+  font-family:Georgia,"Times New Roman",serif;font-style:italic;
+  color:var(--faint);font-size:14.5px;line-height:1.6;margin-bottom:22px
+}
+
+/* ---- source card ---- */
+.source-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px 18px;margin:20px 0;box-shadow:var(--sh-1)}
+.source-grid{display:grid;grid-template-columns:88px 1fr;gap:8px 16px;font-size:13.5px}
+.label{color:var(--faint);font-size:12.5px}
+.source-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:15px;padding-top:14px;border-top:1px dashed var(--line-soft)}
+.original-button{
+  display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#fff;
+  padding:9px 15px;border-radius:var(--r);font-weight:600;font-size:13.5px;
+  transition:background var(--dur) var(--ease),box-shadow var(--dur) var(--ease),transform var(--dur) var(--ease)
+}
+.original-button:hover{background:var(--accent-ink);color:#fff;box-shadow:var(--sh-2)}
+.original-button:active{transform:translateY(1px);box-shadow:none}
+.copy-btn{font-size:13px;padding:9px 13px}
+.copy-btn.done{color:#3f6b3d;border-color:#a8c3a3;background:#f2f7f1}
+
+/* ---- AI summary as the page's pull quote ---- */
+.summary{
+  background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--accent);
+  padding:17px 20px;margin:24px 0 0;border-radius:0 var(--r) var(--r) 0;font-size:15.5px;line-height:1.85
+}
+.summary .tag{
+  display:block;font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--accent);font-weight:700;margin-bottom:7px
+}
+.reason{
+  border:1px dashed var(--line-strong);border-top:0;border-radius:0 0 var(--r) var(--r);
+  padding:12px 20px;color:#8f4136;font-size:13px;background:#fdf8f6;margin-bottom:24px
+}
+.reason b{color:var(--accent-ink)}
+img.hero{max-width:100%;height:auto;margin:24px 0;border-radius:var(--r);border:1px solid var(--line)}
+
+/* ---- body toolbar: view toggle + font size ---- */
+.body-toolbar{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  max-width:720px;margin:30px auto 0;padding-bottom:10px;border-bottom:1px solid var(--line)
+}
+.body-toolbar .tb-label{font-size:12px;color:var(--muted)}
+.body-toolbar .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.translate-note{max-width:720px;margin:10px auto 0;font-size:12px;color:#7a5b18;background:#fdf6e3;border:1px solid #e8d9a8;border-radius:var(--r-sm);padding:7px 11px}
+
+/* ---- bilingual body ---- */
+.article-body{max-width:720px;margin:18px auto 34px;color:#2a2722}
+/* Each EN/ZH pair is wrapped so hovering either half tints both — makes it
+   obvious which translation belongs to which source paragraph. */
+.pair{border-radius:var(--r-sm);padding:2px 10px;margin:0 -10px;transition:background var(--dur) var(--ease)}
+.article-body:not(.only-cn) .pair:hover{background:#f7f3ea}
+.article-body .en{
+  font-family:Georgia,"Times New Roman",serif;font-style:italic;color:#9c9584;
+  font-size:calc(13.5px * var(--fs,1));line-height:1.8;margin:16px 0 3px
+}
+.article-body .zh{font-size:calc(16.5px * var(--fs,1));line-height:2;color:#232323;margin:3px 0 18px;transition:font-size var(--dur) var(--ease)}
+.article-body.only-cn .pair{padding:0;margin:0}
+.article-body.only-cn .zh{margin:0 0 18px}
+.article-body.only-cn .en{display:none}
+
+.empty-body,.body-suppressed{
+  max-width:720px;margin:22px auto;padding:18px 20px;border-radius:var(--r-lg);
+  font-size:13.5px;line-height:1.85
+}
+.empty-body{background:var(--surface);border:1px dashed var(--line-strong);color:var(--muted);text-align:center}
+.body-suppressed{background:var(--surface-2);border:1px solid var(--line);color:var(--ink-soft)}
 .body-suppressed b{color:var(--ink)}
-/* Warns readers the score/summary came from keyword rules, not the AI.
-   Muted amber so it's visible but doesn't dominate the header. */
-.fallback-tag{display:inline-block;margin-left:6px;padding:2px 8px;font-size:11.5px;font-weight:600;color:#7a5b18;background:#fbf1d6;border:1px solid #e0c46c;border-radius:3px;vertical-align:middle}
-details{background:#fff;border:1px solid var(--line);border-radius:6px;padding:12px 16px;margin:20px 0}
-summary{cursor:pointer;font-weight:700}
-.notice{font-size:12px;color:#8b857a;margin-top:42px;border-top:1px solid var(--line);padding-top:12px}
-@media(max-width:600px){.source-grid{grid-template-columns:1fr}.label{font-weight:700}.article-body{font-size:15px}}
-</style>
-</head>
-<body>
+
+details{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:13px 17px;margin:22px 0}
+details p{margin:9px 0;font-size:13px;color:var(--ink-soft);word-break:break-all}
+summary{cursor:pointer;font-weight:600;font-size:13.5px;color:var(--muted);list-style:none;display:flex;align-items:center;gap:7px}
+summary::-webkit-details-marker{display:none}
+summary::before{
+  content:"";width:0;height:0;border-left:5px solid currentColor;
+  border-top:4px solid transparent;border-bottom:4px solid transparent;
+  transition:transform var(--dur) var(--ease)
+}
+details[open] summary::before{transform:rotate(90deg)}
+summary:hover{color:var(--accent)}
+
+@media(max-width:640px){
+  h1{font-size:24px}
+  .source-grid{grid-template-columns:1fr;gap:3px 0}
+  .label{font-weight:600;margin-top:8px}
+  .sticky-inner{padding:8px 16px}
+}
+{% endblock %}
+
+{% block content %}
+<div class="progress" id="progress"></div>
+<div class="sticky-bar" id="stickyBar">
+  <div class="sticky-inner">
+    <a class="sticky-back" href="{{ back_search_url() }}">←</a>
+    <span class="badge score{{ article.score or 1 }}">{{ article.score or '–' }}</span>
+    <span class="sticky-title">{{ article.title_cn or article.title_original }}</span>
+  </div>
+</div>
+
 <div class="back"><a href="{{ back_search_url() }}">← 返回检索结果</a></div>
 
-<div class="meta">
-  <span class="badge score{{ article.score or 1 }}">重要性 {{ article.score or '-' }}</span>
+<div class="head-meta">
+  <span class="badge score{{ article.score or 1 }}">重要性 {{ article.score or '–' }}</span>
   {% if not article.ai_succeeded %}<span class="fallback-tag" title="AI 处理失败，此分数由关键词规则给出，未经 AI 判断">规则打分（未经 AI）</span>{% endif %}
-  {% for tag in article.industry_tags %}<span class="tag">{{ tag }}</span>{% endfor %}
-  {% for kw in article.matched_keyword_list %}<span class="keyword">{{ kw }}</span>{% endfor %}
+  {% for tag in article.industry_tags %}<span class="chip">{{ tag }}</span>{% endfor %}
+  {% for kw in article.matched_keyword_list %}<span class="chip chip-kw">{{ kw }}</span>{% endfor %}
 </div>
 
 <h1>{{ article.title_cn or article.title_original }}</h1>
@@ -92,58 +160,94 @@ summary{cursor:pointer;font-weight:700}
     </div>
     {% if article.date_is_verified %}
       <div class="label">发布日期</div>
-      <div>{{ article.published_at[:10] }}<span class="date-info" data-info><svg class="date-info-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="4.7" r="0.9" fill="currentColor"/><path d="M8 7.4V11.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span class="date-info-tip">{% if article.date_source == 'rss.trusted' %}该日期来自信源官方 RSS 的发布时间。{% else %}该日期取自原文网页的发布时间标记，是新闻的实际发布日。{% endif %}</span></span></div>
+      <div class="num">{{ article.published_at[:10] }}<span class="date-info" data-info><svg class="date-info-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="4.7" r="0.9" fill="currentColor"/><path d="M8 7.4V11.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span class="date-info-tip">{% if article.date_source == 'rss.trusted' %}该日期来自信源官方 RSS 的发布时间。{% else %}该日期取自原文网页的发布时间标记，是新闻的实际发布日。{% endif %}</span></span></div>
     {% elif article.display_date %}
       <div class="label">归档日期</div>
-      <div>{{ article.display_date }}（来源未核实）<span class="date-info" data-info><svg class="date-info-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="4.7" r="0.9" fill="currentColor"/><path d="M8 7.4V11.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span class="date-info-tip">本篇信源未提供可靠的发布时间，精确时间请点原文链接核对。</span></span></div>
+      <div class="num">{{ article.display_date }}（来源未核实）<span class="date-info" data-info><svg class="date-info-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="4.7" r="0.9" fill="currentColor"/><path d="M8 7.4V11.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span class="date-info-tip">本篇信源未提供可靠的发布时间，精确时间请点原文链接核对。</span></span></div>
     {% endif %}
     <div class="label">涉及公司</div><div>{{ article.companies|join("、") if article.companies else "未识别" }}</div>
   </div>
-  {% if article.url %}<a class="original-button" href="{{ article.url }}" target="_blank" rel="noopener noreferrer">打开原文网页 ↗</a>{% endif %}
+  <div class="source-actions">
+    {% if article.url %}
+    <a class="original-button" href="{{ article.url }}" target="_blank" rel="noopener noreferrer">
+      打开原文网页
+      <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3h7v7M13 3L6.5 9.5M11 10.5V13H3V5h2.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+    {% endif %}
+    {# Copy helpers — this page's output usually ends up pasted into a note or
+       a chat, so save the select-and-drag. #}
+    <button type="button" class="btn btn-ghost copy-btn" data-copy="summary">复制中文摘要</button>
+    <button type="button" class="btn btn-ghost copy-btn" data-copy="link">复制原文链接</button>
+  </div>
 </div>
 
 {% if article.ai_succeeded %}
-  <div class="summary"><b>AI 中文摘要：</b>{{ article.summary_cn }}</div>
+  <div class="summary" id="summaryText"><span class="tag">AI 中文摘要</span>{{ article.summary_cn }}</div>
   {% if article.score_reason %}<div class="reason"><b>AI 打分理由：</b>{{ article.score_reason }}</div>{% endif %}
 {% else %}
-  <div class="summary"><b>原始摘要 / 规则回退：</b>{{ article.summary_cn or article.rss_summary or "（无摘要）" }}</div>
+  <div class="summary" id="summaryText"><span class="tag">原始摘要 / 规则回退</span>{{ article.summary_cn or article.rss_summary or "（无摘要）" }}</div>
   <div class="reason"><b>状态说明：</b>AI 处理失败，本页仅展示原始摘要与关键词规则评分，不应视为 AI 翻译或 AI 结论。{% if article.ai_error %} 错误：{{ article.ai_error }}{% endif %}</div>
 {% endif %}
 
-{% if article.main_image %}<img src="{{ article.main_image }}" alt="文章主图">{% endif %}
+{% if article.main_image %}<img class="hero" src="{{ article.main_image }}" alt="文章主图">{% endif %}
 
 {% if (article.score or 0) >= score_threshold_full_body %}
 {% if article.paragraphs %}
   {% if article.paragraphs_cn %}
-  <div class="view-toggle">
-    显示：
-    {% if view == 'cn' %}
-      <a href="{{ page_url(view='both') }}">中英对照</a>
-      <span class="active">只看中文</span>
-    {% else %}
-      <span class="active">中英对照</span>
-      <a href="{{ page_url(view='cn') }}">只看中文</a>
-    {% endif %}
+  <div class="body-toolbar">
+    <span class="tb-label">正文显示</span>
+    {# Server-rendered links stay the source of truth (works with JS off);
+       the script below upgrades them to an instant class swap. #}
+    <span class="seg" id="viewSeg">
+      {% if view == 'cn' %}
+        <a href="{{ page_url(view='both') }}" data-view="both">中英对照</a>
+        <span class="on" data-view="cn">只看中文</span>
+      {% else %}
+        <span class="on" data-view="both">中英对照</span>
+        <a href="{{ page_url(view='cn') }}" data-view="cn">只看中文</a>
+      {% endif %}
+    </span>
+    <span class="right">
+      <span class="tb-label">字号</span>
+      <span class="seg" id="fsSeg">
+        <button type="button" data-fs="0.85">小</button>
+        <button type="button" data-fs="1">中</button>
+        <button type="button" data-fs="1.18">大</button>
+      </span>
+    </span>
   </div>
   {% if article.translate_status == 'partial' %}
   <div class="translate-note">⚠ 本篇存在部分段落翻译失败，页面上以 [本段翻译失败] 标识；如需重试可运行 <code>run.py --translate --only-missing</code>。</div>
   {% endif %}
-  <div class="article-body{% if view == 'cn' %} only-cn{% endif %}">
+  <div class="article-body{% if view == 'cn' %} only-cn{% endif %}" id="articleBody">
     {% for i in range(article.paragraphs|length) %}
-      {% if view != 'cn' %}<p class="en">{{ article.paragraphs[i] }}</p>{% endif %}
-      {% if i < article.paragraphs_cn|length %}<p class="zh">{{ article.paragraphs_cn[i] }}</p>{% endif %}
+      <div class="pair">
+        <p class="en">{{ article.paragraphs[i] }}</p>
+        {% if i < article.paragraphs_cn|length %}<p class="zh">{{ article.paragraphs_cn[i] }}</p>{% endif %}
+      </div>
     {% endfor %}
     {# If translation returned more paragraphs than the source (shouldn't happen), show the remainder anyway #}
     {% if article.paragraphs_cn|length > article.paragraphs|length %}
       {% for j in range(article.paragraphs|length, article.paragraphs_cn|length) %}
-        <p class="zh">{{ article.paragraphs_cn[j] }}</p>
+        <div class="pair"><p class="zh">{{ article.paragraphs_cn[j] }}</p></div>
       {% endfor %}
     {% endif %}
   </div>
   {% else %}
   {# No translation yet — render original as before (no bilingual pairs) #}
-  <div class="article-body">
-    {% for p in article.paragraphs %}<p class="en">{{ p }}</p>{% endfor %}
+  <div class="body-toolbar">
+    <span class="tb-label">本篇尚无中文翻译，以下为原文</span>
+    <span class="right">
+      <span class="tb-label">字号</span>
+      <span class="seg" id="fsSeg">
+        <button type="button" data-fs="0.85">小</button>
+        <button type="button" data-fs="1">中</button>
+        <button type="button" data-fs="1.18">大</button>
+      </span>
+    </span>
+  </div>
+  <div class="article-body" id="articleBody">
+    {% for p in article.paragraphs %}<div class="pair"><p class="en">{{ p }}</p></div>{% endfor %}
   </div>
   {% endif %}
 {% else %}
@@ -167,23 +271,107 @@ summary{cursor:pointer;font-weight:700}
   <p><b>抓取时间：</b>{{ article.crawled_at or article.archived_at or '' }}</p>
 </details>
 
-<div class="notice">发布日期仅在来源为网页级结构化数据、明确发布元数据或标题附近带明确日期标签时才判为「已核实」；否则显示归档日期作为参考。关键数字请回到原文核验。</div>
+<div class="footnote">发布日期仅在来源为网页级结构化数据、明确发布元数据或标题附近带明确日期标签时才判为「已核实」；否则显示归档日期作为参考。关键数字请回到原文核验。</div>
+{% endblock %}
+
+{% block scripts %}
 <script>
-// Tap-to-toggle for [data-info] tooltips so touch devices can see them;
-// desktop still gets pure :hover via CSS. Click outside closes any open tip.
 (function(){
-  var tips = document.querySelectorAll('[data-info]');
-  tips.forEach(function(el){
-    el.addEventListener('click', function(e){
-      e.stopPropagation();
-      tips.forEach(function(other){ if(other !== el) other.classList.remove('open'); });
-      el.classList.toggle('open');
+  "use strict";
+
+  /* --- reading progress + sticky header --- */
+  var bar = document.getElementById('progress');
+  var sticky = document.getElementById('stickyBar');
+  var h1 = document.querySelector('h1');
+  var tick = function(){
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    if(bar) bar.style.width = (h > 0 ? Math.min(100, window.scrollY / h * 100) : 0) + '%';
+    if(sticky && h1) sticky.classList.toggle('show', window.scrollY > h1.offsetTop + h1.offsetHeight);
+  };
+  window.addEventListener('scroll', tick, {passive:true});
+  window.addEventListener('resize', tick);
+  tick();
+
+  /* --- font size (persisted) --- */
+  var fsSeg = document.getElementById('fsSeg');
+  var body = document.getElementById('articleBody');
+  var applyFs = function(v){
+    if(body) body.style.setProperty('--fs', v);
+    if(fsSeg) Array.prototype.forEach.call(fsSeg.children, function(b){
+      b.classList.toggle('on', b.dataset.fs === v);
     });
-  });
-  document.addEventListener('click', function(){
-    tips.forEach(function(el){ el.classList.remove('open'); });
+  };
+  /* A previously stored value may come from an older set of steps. If it no
+     longer matches any button, fall back to 中 — otherwise the control shows
+     nothing highlighted and the size looks stuck. */
+  var stored = window.__prefs.get('bodyFs', '1');
+  if(!fsSeg || !fsSeg.querySelector('[data-fs="' + stored + '"]')) stored = '1';
+  applyFs(stored);
+  if(fsSeg){
+    fsSeg.addEventListener('click', function(e){
+      var b = e.target.closest('[data-fs]');
+      if(!b) return;
+      window.__prefs.set('bodyFs', b.dataset.fs);
+      applyFs(b.dataset.fs);
+    });
+  }
+
+  /* --- bilingual toggle upgraded to an instant class swap.
+         Falls back to the plain link navigation when JS is off. --- */
+  var viewSeg = document.getElementById('viewSeg');
+  if(viewSeg && body){
+    viewSeg.addEventListener('click', function(e){
+      var el = e.target.closest('[data-view]');
+      if(!el) return;
+      e.preventDefault();
+      var mode = el.dataset.view;
+      body.classList.toggle('only-cn', mode === 'cn');
+      Array.prototype.forEach.call(viewSeg.children, function(c){
+        c.classList.toggle('on', c.dataset.view === mode);
+      });
+      /* Keep the URL honest so a refresh or a copied link lands in the same
+         view, without a round-trip to the server. */
+      var u = new URL(window.location.href);
+      u.searchParams.set('view', mode);
+      history.replaceState(null, '', u);
+      tick();
+    });
+  }
+
+  /* --- copy buttons --- */
+  var flash = function(btn, text){
+    var old = btn.textContent;
+    btn.textContent = text;
+    btn.classList.add('done');
+    setTimeout(function(){ btn.textContent = old; btn.classList.remove('done'); }, 1600);
+  };
+  Array.prototype.forEach.call(document.querySelectorAll('[data-copy]'), function(btn){
+    btn.addEventListener('click', function(){
+      var kind = btn.dataset.copy, text = '';
+      if(kind === 'summary'){
+        var el = document.getElementById('summaryText');
+        if(el){
+          /* Drop the "AI 中文摘要" label span — only the prose is useful. */
+          var clone = el.cloneNode(true);
+          var tag = clone.querySelector('.tag');
+          if(tag) tag.remove();
+          text = clone.textContent.trim();
+        }
+      } else {
+        text = {{ (article.url or '')|tojson }};
+      }
+      if(!text) return;
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(function(){ flash(btn, '已复制 ✓'); })
+          .catch(function(){ flash(btn, '复制失败'); });
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        try{ document.execCommand('copy'); flash(btn, '已复制 ✓'); }catch(err){ flash(btn, '复制失败'); }
+        document.body.removeChild(ta);
+      }
+    });
   });
 })();
 </script>
-</body>
-</html>
+{% endblock %}

@@ -6,6 +6,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from flask import Flask, abort, g, render_template, request, url_for
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Load .env once at import time so app.py and gunicorn get the same view
 # of the environment as run.py already does. This deliberately replaces the
@@ -57,6 +58,11 @@ def create_app() -> Flask:
     app = Flask(__name__, template_folder=str(BASE / "templates"))
     app.config["DB_PATH"] = str(BASE / "data/news.db")
     app.config["KEYWORDS_PATH"] = str(BASE / "config/watch_keywords.json")
+
+    # x_prefix=1 lets nginx mount us under a subpath by sending
+    # X-Forwarded-Prefix; url_for() then generates correctly-prefixed links.
+    # No header = SCRIPT_NAME stays empty, so local dev is unaffected.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
     def get_db() -> sqlite3.Connection:
         if "db" not in g:

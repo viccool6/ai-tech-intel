@@ -2,7 +2,7 @@
 <!--
   macOS launchd 定时单元。用户级（LaunchAgent），不需要 root。
   安装步骤（见 deploy.md 详解）：
-    1. 把两处 <APP_PATH_ON_MAC> 替换成你本机项目绝对路径（zsh：pwd 一下）
+    1. 把两处 /Users/vic/Desktop/实习/中信建投-能源化工组/AI产业链新闻监测系统任务/AI-Tech-Intel-V1 替换成你本机项目绝对路径（zsh：pwd 一下）
     2. cp 到 ~/Library/LaunchAgents/
     3. launchctl load ~/Library/LaunchAgents/com.viceng.aitechintel.plist
     4. 立即试跑一次：launchctl start com.viceng.aitechintel
@@ -20,7 +20,7 @@
   <key>ProgramArguments</key>
   <array>
     <string>/bin/zsh</string>
-    <string><APP_PATH_ON_MAC>/deploy/mac-daily.sh</string>
+    <string>/Users/vic/Desktop/实习/中信建投-能源化工组/AI产业链新闻监测系统任务/AI-Tech-Intel-V1/deploy/mac-daily.sh</string>
   </array>
 
   <key>StartCalendarInterval</key>
@@ -35,13 +35,13 @@
   <!-- launchd 自己的 stdout/stderr。脚本内部也追加了 data/logs/mac-daily.log，
        两处日志互为备份：脚本日志有时间戳更好读，launchd 日志能看到脚本自身崩溃。 -->
   <key>StandardOutPath</key>
-  <string><APP_PATH_ON_MAC>/data/logs/launchd.out</string>
+  <string>/Users/vic/Desktop/实习/中信建投-能源化工组/AI产业链新闻监测系统任务/AI-Tech-Intel-V1/data/logs/launchd.out</string>
   <key>StandardErrorPath</key>
-  <string><APP_PATH_ON_MAC>/data/logs/launchd.err</string>
+  <string>/Users/vic/Desktop/实习/中信建投-能源化工组/AI产业链新闻监测系统任务/AI-Tech-Intel-V1/data/logs/launchd.err</string>
 
   <!-- WorkingDirectory 让相对路径解析正确，虽然脚本第一行已 cd -->
   <key>WorkingDirectory</key>
-  <string><APP_PATH_ON_MAC></string>
+  <string>/Users/vic/Desktop/实习/中信建投-能源化工组/AI产业链新闻监测系统任务/AI-Tech-Intel-V1</string>
 
   <!-- 关键：让 scp/ssh 用到 login shell 的 PATH（Homebrew、.env 之类）。
        macOS launchd 默认 PATH 极简，不含 /usr/local/bin 等。 -->

@@ -42,7 +42,7 @@ echo "    snapshot 大小: $snap_size bytes"
 
 # --- 3. scp 到服务器（先落到 .new，防止半传输被 Flask 读到）---
 SERVER="seventharea"
-REMOTE_DATA="<APP_PATH_ON_SERVER>/data"
+REMOTE_DATA="/home/jiantouhuagongshixi/ai-tech-intel/data"
 
 echo "[step 3/4] scp → $SERVER:$REMOTE_DATA/news.db.new"
 scp -q data/news.db.snapshot "$SERVER:$REMOTE_DATA/news.db.new"

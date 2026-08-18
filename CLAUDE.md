@@ -131,6 +131,7 @@
 - 5 大轮改造：FTS5 索引层 / Flask 检索页 / 详情页+聚合 / 4-5 分翻译 / run.py 瘦身 + 部署配置
 - 详情页：低分不展开、双语切换、ⓘ 日期溯源、规则回退明示、SVG 图标
 - 关键修复：DeepSeek 400、破坏性 `--no-ai` 守卫、JSON-LD publisher URL 泄漏、trust_rss_date 白名单、author_status 三值区分（named / institutional / unknown）
+- **第 5B 轮 服务器可达信源改造**（`b5f4400`）：Bing 4 源（HBM / CapEx / CoWoS / people）+ TrendForce Insights + SemiWiki；Google 4 源标 `requires_proxy: true`，`fetchers.py` 遇到不通自动跳过并 `[requires_proxy]` 日志；`article_parser` 支持 Bing wrapper 解包；publisher 黑名单 10 域（seekingalpha / invezz / msn 等散户资讯站）
 - Deploy 配置：`deploy/gunicorn.service` + `deploy/ai-tech-intel.service+.timer` + `deploy/nginx.conf`，全用 `<SYSTEM_USER>` / `<APP_PATH>` / `<DOMAIN>` 占位符
 - **第 6 轮 UI 改造**（纯模板层，未动 `app.py` / `src/`）：抽出 `base.html`；检索页表格改卡片流；新增当前条件回显、密度切换、`/` 聚焦、排序/密度 sticky 工具条；详情页新增阅读进度条、滚动吸顶标题、中英切换改前端即时切换（保留链接兜底）、正文字号调节、复制摘要/链接。旧模板留在 `templates/*.html.orig` 作对照，确认后可删
 
@@ -142,21 +143,17 @@
 - **改完模板必须重启 Flask**：`app.py` 默认 `debug=False`，Jinja 的 `auto_reload` 跟着是 False，改磁盘上的模板不重启进程不会生效。服务器上同理——换 `news.db` 不用重启 gunicorn，改模板必须重启
 - **UI 验收优先用 Chrome**：Safari 的「网站 → 页面缩放」若不是 100%，会触发 WebKit 写死的 9px 最小逻辑字号（50% 缩放下所有小于 18px 的字号被顶平），导致排版层次全部失真，且这个下限关不掉
 
-### 正在推进：服务器可达信源改造
-1. **Bing News HBM 单源已验证**（uncommitted，待用户批准）：
-   - `src/article_parser.py` 加了 `_is_bing_news_url` / `_resolve_bing_news_url` / `_resolve_redirect_url` 分发器 / `_is_aggregator_wrapper` 统一判断
-   - `config/sources.json` 追加 `bing_hbm` 一条
-   - 7 条 HBM 相关 title 都命中主题，unwrap 到 seekingalpha/invezz/msn 等真实媒体
-2. **待用户批准后铺开**：
-   - Google 4 源加 `requires_proxy: true`
-   - `fetchers.py` 加跳过逻辑
-   - 追加 Bing 3 源（AI CapEx / CoWoS / 关键人物）
-   - 追加 3 个直连源（The Decoder / TrendForce / SemiWiki）——URL 待用户提供
+### 正在推进：服务器首次上线部署
+按 `deploy.md` 一次性清单执行：
+- Mac 端：SSH 别名 + Keychain（私钥 `~/.ssh/seventharea_ed25519` 已配）、`deploy/mac-daily.sh` 里填 `SERVER=seventharea` + `REMOTE_DATA=<APP_PATH>/data`、装载 `com.viceng.aitechintel.plist`
+- 服务器端：**只装** `ai-tech-intel-web.service`（gunicorn），配 `nginx.conf` + Basic Auth（`/etc/nginx/.htpasswd-ai-tech-intel`）
+- 抓取/AI/翻译全部在 Mac 上跑，服务器 `data/news.db` 由 `mac-daily.sh` scp 快照 + 原子 `mv` 更新
+- 阻塞项：等项目负责人给出正式 `<APP_PATH_ON_SERVER>` 目录 + 安全组白名单
 
 ### 后续
-- 服务器首次上线部署（按 `deploy.md` 一次性清单跑）
 - 观察 1-2 周 launchd 稳定性 + Bing 各源命中率 + DeepSeek 月账单
-- 视命中情况决定是否给 bing_people 拆成三个人物源（Bing OR 语法有限，pipe OR 返回结果偏旧）
+- 视命中情况决定是否给 bing_people 拆成三个人物源（Bing OR 语法有限，pipe OR 返回结果偏旧，b5f4400 干跑统计里 24h/168h 命中都是 0）
+- 若 Bing/直连源长期偏低，回头评估给服务器加代理让 Google 4 源也能跑（现在 `requires_proxy: true` 会自动跳过）
 
 ## Mac 端双击启动器
 

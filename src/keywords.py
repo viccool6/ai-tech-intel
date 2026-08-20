@@ -81,4 +81,9 @@ def searchable_text(article: dict) -> str:
 
 def matched_keywords(article: dict, keywords: Iterable[str]) -> list[str]:
     haystack = searchable_text(article)
-    return [keyword for keyword in keywords if keyword.casefold() in haystack]
+    hits = []
+    for kw in keywords:
+        aliases = [a.strip() for a in kw.split("/") if a.strip()] or [kw]
+        if any(a.casefold() in haystack for a in aliases):
+            hits.append(kw)
+    return hits

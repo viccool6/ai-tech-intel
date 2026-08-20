@@ -56,7 +56,7 @@ def _sanitize_fts_snippet(text: str) -> str:
     return escape(text).replace(_MARK_OPEN, "<mark>").replace(_MARK_CLOSE, "</mark>")
 
 
-def _build_filters(source: str, min_score: int, days: str, keyword: str) -> tuple[list[str], list]:
+def _build_filters(source: str, min_score: int, days: str, keywords: list[str]) -> tuple[list[str], list]:
     # Always exclude paywalled rows — they have no AI summary or full body
     # to display, and listing them wastes reader attention. They still exist
     # in DB so tomorrow's fetch dedups against them; count them with:
@@ -78,9 +78,11 @@ def _build_filters(source: str, min_score: int, days: str, keyword: str) -> tupl
             cutoff = (date.today() - timedelta(days=n)).isoformat()
             clauses.append(f"{_DISPLAY_DATE_EXPR} >= ?")
             params.append(cutoff)
-    if keyword:
+    # Multiple selected keywords AND together — same semantics as source/score/date
+    # filters, i.e. adding a chip narrows the result set rather than broadening it.
+    for kw in keywords or []:
         clauses.append("a.matched_keywords LIKE ?")
-        params.append(f"%|{keyword}|%")
+        params.append(f"%|{kw}|%")
     return clauses, params
 
 
@@ -145,7 +147,7 @@ def _hydrate(row: sqlite3.Row) -> dict:
 
 def search_articles(
     db: sqlite3.Connection, *, q: str = "", source: str = "",
-    min_score: int = 0, days: str = "all", keyword: str = "",
+    min_score: int = 0, days: str = "all", keywords: list[str] | None = None,
     sort: str = "relevance", page: int = 1, per_page: int = 10,
 ) -> dict:
     """Run a query and return a page of hydrated rows.
@@ -157,7 +159,8 @@ def search_articles(
         asked for relevance; everything else falls back to 'date' because
         LIKE/list have no bm25 signal to rank by.
     """
-    filter_clauses, filter_params = _build_filters(source, min_score, days, keyword)
+    keywords = keywords or []
+    filter_clauses, filter_params = _build_filters(source, min_score, days, keywords)
     q = q.strip()
     degraded = False
     mode = "list"
@@ -180,7 +183,7 @@ def search_articles(
     # filter (no q, keyword chip clicked) also gets the field-weight score
     # using the keyword text as the ranking term. Only source/days/score
     # filters alone don't imply a ranking direction.
-    can_rank = mode in ("fts", "like") or (mode == "list" and bool(keyword))
+    can_rank = mode in ("fts", "like") or (mode == "list" and bool(keywords))
     effective_sort = "relevance" if (can_rank and sort == "relevance") else "date"
 
     order_by_date = (
@@ -235,10 +238,12 @@ def search_articles(
         base_where = " AND ".join(filter_clauses) if filter_clauses else "1=1"
         base_params = list(filter_params)
         if effective_sort == "relevance":
-            # No user query, but a keyword chip is active — rank by where
-            # the keyword text lands in the row (title > summary > body),
-            # so chip-filtered results aren't just date-ordered.
-            kw_like = f"%{keyword}%"
+            # No user query, but keyword chip(s) active — rank by where the
+            # first keyword's text lands in the row (title > summary > body),
+            # so chip-filtered results aren't just date-ordered. With multiple
+            # keywords selected the intersection is already filtered; using
+            # the first chip as ranking anchor keeps the SQL simple.
+            kw_like = f"%{keywords[0]}%"
             select_sql = (
                 f"SELECT a.*, {_WEIGHT_EXPR} AS relevance, NULL AS snippet "
                 f"FROM articles a WHERE {base_where} "
@@ -295,6 +300,95 @@ def article_paragraphs(text: str) -> list[str]:
     if not text:
         return []
     return [line.strip() for line in re.split(r"\n+", text) if line.strip()]
+
+
+# Subscription CTAs, newsletter pitches, and other trailing boilerplate that
+# publishers (THE DECODER, etc.) staple onto every article body. Trafilatura
+# extracts them, then AI faithfully translates them — the reader ends up with
+# a page of "立即订阅" bullets they didn't ask for. Any paragraph containing
+# one of these substrings (casefold) is dropped from display. Add new patterns
+# here as new junk shows up.
+_BOILERPLATE_PATTERNS = (
+    # English CTAs / feature bullets
+    "subscribe now", "subscribe to", "subscribe for",
+    "sign up for our newsletter", "start your free trial",
+    "read on for the full", "join the comments",
+    "full access to every article", "no ads",
+    "weekly ai news recap", "daily ai news, always up to date",
+    "ai radar", "hype-free coverage",
+    "our full ten-year archive", "our full ten year archive",
+    "ten-year archive", "ten year archive",
+    "covered by a team with 10", "10+ years in ai",
+    "archive access, and access to our comment",
+    "ai news without the hype", "curated by humans",
+    # Chinese CTA translations
+    "立即订阅", "订阅无炒作", "订阅 the decoder", "订阅the decoder",
+    "享受无广告", "无广告阅读", "评论区的访问权限",
+    "继续阅读以了解", "完全访问 the decoder", "完全访问the decoder",
+    "加入评论和社区", "ai 新闻摘要", "ai新闻摘要",
+    "十年档案", "10 年以上 ai", "10年以上ai", "ai 经验的团队", "ai经验的团队",
+    "始终最新", "每年 6 次", "每年6次",
+    "无炒作的 ai 新闻", "无炒作的ai新闻", "由人工策划",
+)
+
+
+# Trigger phrases that mark the START of a related-articles / recommendation
+# strip at the end of an article. Once we see one, everything from that
+# paragraph to the end of the body is dropped — the tail is not the article,
+# it's the next N articles the site suggests you read.
+_CUTOFF_PATTERNS = (
+    "you might also like", "you may also like",
+    "related articles", "related stories", "more from",
+    "recommended for you", "read next",
+    "你可能还喜欢", "你可能也喜欢", "你可能感兴趣",
+    "相关阅读", "相关文章", "相关新闻", "延伸阅读", "更多来自",
+)
+
+
+def _is_boilerplate(paragraph: str) -> bool:
+    s = paragraph.casefold().strip()
+    # Empty-looking bullet markers: a lone "-", "•", "*", etc., or fewer than
+    # 3 real characters. Trafilatura sometimes leaves these behind as noise.
+    stripped = s.strip("-•*·—– \t")
+    if len(stripped) < 3:
+        return True
+    return any(pat in s for pat in _BOILERPLATE_PATTERNS)
+
+
+def _is_cutoff(paragraph: str) -> bool:
+    s = paragraph.casefold()
+    return any(pat in s for pat in _CUTOFF_PATTERNS)
+
+
+def filter_boilerplate_pairs(en: list[str], cn: list[str]) -> tuple[list[str], list[str]]:
+    """Drop aligned index pairs where EITHER side is a subscription/newsletter
+    CTA, and truncate the body at the first "you might also like"-style
+    cutoff (whichever side triggers it first).
+
+    Keeping alignment matters — the template pairs en[i] with cn[i], so
+    filtering independently would shift the translation off its source line.
+    """
+    n_pairs = min(len(en), len(cn))
+    en_out: list[str] = []
+    cn_out: list[str] = []
+    for i in range(n_pairs):
+        if _is_cutoff(en[i]) or _is_cutoff(cn[i]):
+            return en_out, cn_out
+        if _is_boilerplate(en[i]) or _is_boilerplate(cn[i]):
+            continue
+        en_out.append(en[i])
+        cn_out.append(cn[i])
+    for p in en[n_pairs:]:
+        if _is_cutoff(p):
+            break
+        if not _is_boilerplate(p):
+            en_out.append(p)
+    for p in cn[n_pairs:]:
+        if _is_cutoff(p):
+            break
+        if not _is_boilerplate(p):
+            cn_out.append(p)
+    return en_out, cn_out
 
 
 def total_articles(db: sqlite3.Connection) -> int:

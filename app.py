@@ -19,6 +19,7 @@ from src.config import SCORE_THRESHOLD_FULL_BODY
 from src.keywords import load_keywords
 from src.search import (
     article_paragraphs,
+    filter_boilerplate_pairs,
     get_article,
     keyword_counts,
     latest_archived_at,
@@ -87,7 +88,9 @@ def create_app() -> Flask:
         except ValueError:
             min_score = 0
         days = args.get("days", "all") or "all"
-        keyword = args.get("keyword", "").strip()
+        active_keywords = [k.strip() for k in args.getlist("keyword") if k.strip()]
+        # De-dup while preserving click order
+        active_keywords = list(dict.fromkeys(active_keywords))
         sort = args.get("sort", "relevance") or "relevance"
         if sort not in ("relevance", "date"):
             sort = "relevance"
@@ -104,13 +107,13 @@ def create_app() -> Flask:
         db = get_db()
         result = search_articles(
             db, q=q, source=source, min_score=min_score, days=days,
-            keyword=keyword, sort=sort, page=page, per_page=PER_PAGE,
+            keywords=active_keywords, sort=sort, page=page, per_page=PER_PAGE,
         )
         keywords = load_keywords(Path(app.config["KEYWORDS_PATH"]))
         return render_template(
             "search.html",
             q=q, source=source, min_score=min_score, days=days,
-            active_keyword=keyword,
+            active_keywords=active_keywords,
             requested_sort=sort, sort=result["sort"],
             page=result["page"], pages=result["pages"], per_page=PER_PAGE,
             total=result["total"], rows=result["rows"],
@@ -129,8 +132,9 @@ def create_app() -> Flask:
         art = get_article(db, article_id)
         if not art:
             abort(404)
-        art["paragraphs"] = article_paragraphs(art.get("article_text", ""))
-        art["paragraphs_cn"] = article_paragraphs(art.get("article_text_cn", ""))
+        en_paras = article_paragraphs(art.get("article_text", ""))
+        cn_paras = article_paragraphs(art.get("article_text_cn", ""))
+        art["paragraphs"], art["paragraphs_cn"] = filter_boilerplate_pairs(en_paras, cn_paras)
         view = request.args.get("view", "both")
         if view not in ("both", "cn"):
             view = "both"
@@ -142,8 +146,9 @@ def create_app() -> Flask:
     @app.template_global()
     def page_url(**overrides):
         """URL to the current route preserving query params AND path vars
-        (like article_id). value=None drops a key."""
-        args = dict(request.args)
+        (like article_id). value=None drops a key. Multi-value params like
+        keyword are preserved as lists so url_for emits every occurrence."""
+        args = {k: request.args.getlist(k) for k in request.args.keys()}
         for k, v in overrides.items():
             if v is None or v == "":
                 args.pop(k, None)
@@ -153,16 +158,28 @@ def create_app() -> Flask:
         return url_for(request.endpoint or "search", **view_args, **args)
 
     @app.template_global()
+    def toggle_keyword_url(kw: str):
+        """URL that toggles kw in/out of the active keyword set.
+        Resets ?page= because filter change invalidates pagination."""
+        current = [k.strip() for k in request.args.getlist("keyword") if k.strip()]
+        new = [k for k in current if k != kw] if kw in current else current + [kw]
+        args = {k: request.args.getlist(k) for k in request.args.keys() if k not in ("keyword", "page")}
+        if new:
+            args["keyword"] = new
+        view_args = dict(request.view_args or {})
+        return url_for(request.endpoint or "search", **view_args, **args)
+
+    @app.template_global()
     def back_search_url():
         """Search URL that preserves the filter state the user came from."""
-        args = {k: v for k, v in request.args.items() if k in FILTER_KEYS and v}
+        args = {k: request.args.getlist(k) for k in request.args.keys() if k in FILTER_KEYS and request.args.getlist(k)}
         return url_for("search", **args)
 
     @app.template_global()
     def article_url(article_id: int):
         """Article URL that carries current search filters so the article's
         back button can restore the exact result set."""
-        args = {k: v for k, v in request.args.items() if k in FILTER_KEYS and v}
+        args = {k: request.args.getlist(k) for k in request.args.keys() if k in FILTER_KEYS and request.args.getlist(k)}
         return url_for("article", article_id=article_id, **args)
 
     return app

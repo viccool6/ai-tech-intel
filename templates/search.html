@@ -16,15 +16,13 @@
   background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
   padding:16px 18px;margin:20px 0 0;box-shadow:var(--sh-1)
 }
-/* Row 1 = the query itself (wide). Row 2 = the narrowing filters.
-   The old single 5-column row squeezed the search box to ~260px; splitting
-   it gives the query room and groups the selects as one visual unit. */
-.q-row{display:flex;gap:10px}
-.q-field{position:relative;flex:1}
+/* One-row layout: search input (wide) → three compact filters → 检索 button. */
+.q-row{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch}
+.q-field{position:relative;flex:1 1 320px}
 .q-field svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint);pointer-events:none}
 .q-field input{
-  width:100%;border:1px solid var(--line-strong);border-radius:var(--r);
-  padding:11px 12px 11px 36px;font-size:15px;font-family:inherit;background:var(--surface);color:var(--ink);
+  width:100%;box-sizing:border-box;border:1px solid var(--line-strong);border-radius:var(--r);
+  padding:9px 12px 9px 36px;font-size:14px;font-family:inherit;background:var(--surface);color:var(--ink);
   transition:border-color var(--dur) var(--ease),box-shadow var(--dur) var(--ease)
 }
 .q-field input::placeholder{color:var(--faint)}
@@ -35,10 +33,10 @@
   padding:1px 6px;font-family:var(--mono);background:var(--surface-2);pointer-events:none
 }
 .q-field input:focus ~ .q-hint{opacity:0}
-.filter-row{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+.filter-row{display:flex;gap:6px;align-items:stretch}
 .filter-row select{
-  flex:1;min-width:130px;border:1px solid var(--line-strong);border-radius:var(--r);
-  padding:8px 11px;font-size:13.5px;font-family:inherit;background:var(--surface);color:var(--ink-soft);
+  min-width:110px;box-sizing:border-box;border:1px solid var(--line-strong);border-radius:var(--r);
+  padding:9px 12px;font-size:14px;font-family:inherit;background:var(--surface);color:var(--faint);
   transition:border-color var(--dur) var(--ease),box-shadow var(--dur) var(--ease)
 }
 .filter-row select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-wash)}
@@ -68,17 +66,14 @@
 
 /* ---- keyword watchlist ---- */
 .kw-block{margin-top:16px;border-top:1px dashed var(--line);padding-top:14px}
+.kw-block.kw-block-top{margin-top:0;border-top:0;padding-top:0;margin-bottom:16px;border-bottom:1px dashed var(--line);padding-bottom:14px}
 .kw-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:9px}
 .kw-title{font-size:12.5px;color:var(--muted);font-weight:600}
-.kw-window{margin-left:auto;display:flex;gap:2px;align-items:center;font-size:12px}
-.kw-window a,.kw-window span{padding:2px 8px;border-radius:var(--r-sm);color:var(--muted);transition:background var(--dur) var(--ease),color var(--dur) var(--ease)}
-.kw-window a:hover{background:var(--surface-2);color:var(--ink)}
-.kw-window .active{background:var(--ink);color:#fff;font-weight:600}
 .keyword-list{display:flex;flex-wrap:wrap;gap:7px}
 .keyword-chip{
   display:inline-flex;align-items:baseline;gap:5px;
   border:1px solid var(--line-strong);background:var(--surface-2);
-  border-radius:var(--r-pill);padding:4px 11px;font-size:12.5px;color:var(--ink-soft);
+  border-radius:var(--r-pill);padding:3px 11px;font-size:12.5px;color:var(--ink-soft);line-height:1.6;
   transition:background var(--dur) var(--ease),color var(--dur) var(--ease),border-color var(--dur) var(--ease),transform var(--dur) var(--ease)
 }
 .keyword-chip .n{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
@@ -110,7 +105,7 @@
    column, and pushes source/tags/companies to a footer strip. */
 .results{display:flex;flex-direction:column;gap:12px;margin-top:16px}
 .card{
-  display:grid;grid-template-columns:56px 1fr;
+  display:grid;grid-template-columns:56px 1fr;cursor:pointer;
   background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
   box-shadow:var(--sh-1);overflow:hidden;
   transition:box-shadow var(--dur) var(--ease),transform var(--dur) var(--ease),border-color var(--dur) var(--ease)
@@ -212,83 +207,19 @@ body.compact .more{display:none !important}
 {% block content %}
 
 <form class="panel" method="get" action="{{ url_for('search') }}">
-  <div class="q-row">
-    <div class="q-field">
-      <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true">
-        <circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.6"/>
-        <path d="M10.4 10.4L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-      </svg>
-      <input id="q" name="q" type="search" placeholder="搜索标题、摘要、正文、公司、标签、信源……"
-             value="{{ q }}" autocomplete="off">
-      <span class="q-hint">/</span>
-    </div>
-    <button class="btn" type="submit">检索</button>
-  </div>
-
-  <div class="filter-row">
-    <select name="source" aria-label="信源">
-      <option value="">全部信源</option>
-      {% for s in sources %}<option value="{{ s }}"{% if s == source %} selected{% endif %}>{{ s }}</option>{% endfor %}
-    </select>
-    <select name="score" aria-label="评分">
-      <option value="0"{% if min_score == 0 %} selected{% endif %}>全部评分</option>
-      <option value="5"{% if min_score == 5 %} selected{% endif %}>仅5分</option>
-      <option value="4"{% if min_score == 4 %} selected{% endif %}>4分及以上</option>
-      <option value="3"{% if min_score == 3 %} selected{% endif %}>3分及以上</option>
-      <option value="2"{% if min_score == 2 %} selected{% endif %}>2分及以上</option>
-    </select>
-    <select name="days" aria-label="时间范围">
-      <option value="all"{% if days == 'all' %} selected{% endif %}>全部时间</option>
-      <option value="1"{% if days == '1' %} selected{% endif %}>最近1天</option>
-      <option value="7"{% if days == '7' %} selected{% endif %}>最近7天</option>
-      <option value="30"{% if days == '30' %} selected{% endif %}>最近30天</option>
-      <option value="90"{% if days == '90' %} selected{% endif %}>最近90天</option>
-    </select>
-    {# Params with no visible control in this form are carried as hidden fields
-       so hitting 检索 doesn't silently reset the keyword chip, the sort choice,
-       or the keyword-count window the reader had set. #}
-    {% if active_keyword %}<input type="hidden" name="keyword" value="{{ active_keyword }}">{% endif %}
-    {% if sort and sort != 'relevance' %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
-    {% if kw_days and kw_days != '30' %}<input type="hidden" name="kw_days" value="{{ kw_days }}">{% endif %}
-    {% if show_zero %}<input type="hidden" name="show_zero" value="1">{% endif %}
-  </div>
-
-  {# Applied conditions echoed back as removable chips. Each × links to the
-     same URL minus that one param, so a reader can peel filters off one at a
-     time instead of clearing everything and starting over. #}
-  {% set has_filters = q or source or min_score or (days and days != 'all') or active_keyword %}
-  {% if has_filters %}
-  <div class="applied">
-    <span class="applied-label">当前条件</span>
-    {% if q %}<a class="applied-chip" href="{{ page_url(q=None, page=None) }}">词：{{ q }}<span class="x">×</span></a>{% endif %}
-    {% if active_keyword %}<a class="applied-chip" href="{{ page_url(keyword=None, page=None) }}">关键词：{{ active_keyword }}<span class="x">×</span></a>{% endif %}
-    {% if source %}<a class="applied-chip" href="{{ page_url(source=None, page=None) }}">信源：{{ source }}<span class="x">×</span></a>{% endif %}
-    {% if min_score %}<a class="applied-chip" href="{{ page_url(score=None, page=None) }}">{% if min_score == 5 %}仅 5 分{% else %}{{ min_score }} 分及以上{% endif %}<span class="x">×</span></a>{% endif %}
-    {% if days and days != 'all' %}<a class="applied-chip" href="{{ page_url(days=None, page=None) }}">最近 {{ days }} 天<span class="x">×</span></a>{% endif %}
-    <a class="applied-clear" href="{{ url_for('search') }}">全部清空</a>
-  </div>
-  {% endif %}
-
-  <div class="kw-block">
+  <div class="kw-block kw-block-top">
     <div class="kw-head">
-      <span class="kw-title">监控关键词 · 点击筛选，再点取消</span>
-      <span class="kw-window">
-        统计窗口
-        {% for opt, label in [('7','近7天'),('30','近30天'),('90','近90天'),('all','全部')] %}
-          {% if kw_days == opt %}<span class="active">{{ label }}</span>
-          {% else %}<a href="{{ page_url(kw_days=opt) }}">{{ label }}</a>{% endif %}
-        {% endfor %}
-      </span>
+      <span class="kw-title">监控关键词</span>
     </div>
-    {% set zero_hidden = keyword_stats | selectattr('count', 'equalto', 0) | rejectattr('keyword', 'equalto', active_keyword) | list | length %}
+    {% set zero_hidden = keyword_stats | selectattr('count', 'equalto', 0) | rejectattr('keyword', 'in', active_keywords) | list | length %}
     <div class="keyword-list">
       {% for item in keyword_stats %}
-        {% set is_active = (item.keyword == active_keyword) %}
+        {% set is_active = (item.keyword in active_keywords) %}
         {% if is_active or item.count > 0 or show_zero %}
           {% if is_active %}
-            <a class="keyword-chip active" href="{{ page_url(keyword=None, page=None) }}">{{ item.keyword }}<span class="n">{{ item.count }}</span></a>
+            <a class="keyword-chip active" href="{{ toggle_keyword_url(item.keyword) }}">{{ item.keyword }}<span class="n">{{ item.count }}</span></a>
           {% else %}
-            <a class="keyword-chip{% if item.count == 0 %} zero{% endif %}" href="{{ page_url(keyword=item.keyword, page=None) }}">{{ item.keyword }}<span class="n">{{ item.count }}</span></a>
+            <a class="keyword-chip{% if item.count == 0 %} zero{% endif %}" href="{{ toggle_keyword_url(item.keyword) }}">{{ item.keyword }}<span class="n">{{ item.count }}</span></a>
           {% endif %}
         {% endif %}
       {% endfor %}
@@ -301,6 +232,63 @@ body.compact .more{display:none !important}
       {% endif %}
     </div>
   </div>
+
+  <div class="q-row">
+    <div class="q-field">
+      <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true">
+        <circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        <path d="M10.4 10.4L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+      <input id="q" name="q" type="search" placeholder="搜索标题、摘要、正文、公司、标签、信源……"
+             value="{{ q }}" autocomplete="off">
+      <span class="q-hint">/</span>
+    </div>
+    <div class="filter-row">
+      <select name="source" aria-label="信源">
+        <option value="">全部信源</option>
+        {% for s in sources %}<option value="{{ s }}"{% if s == source %} selected{% endif %}>{{ s }}</option>{% endfor %}
+      </select>
+      <select name="score" aria-label="评分">
+        <option value="0"{% if min_score == 0 %} selected{% endif %}>全部评分</option>
+        <option value="5"{% if min_score == 5 %} selected{% endif %}>仅5分</option>
+        <option value="4"{% if min_score == 4 %} selected{% endif %}>4分及以上</option>
+        <option value="3"{% if min_score == 3 %} selected{% endif %}>3分及以上</option>
+        <option value="2"{% if min_score == 2 %} selected{% endif %}>2分及以上</option>
+      </select>
+      <select name="days" aria-label="时间范围">
+        <option value="all"{% if days == 'all' %} selected{% endif %}>全部时间</option>
+        <option value="1"{% if days == '1' %} selected{% endif %}>最近1天</option>
+        <option value="7"{% if days == '7' %} selected{% endif %}>最近7天</option>
+        <option value="30"{% if days == '30' %} selected{% endif %}>最近30天</option>
+        <option value="90"{% if days == '90' %} selected{% endif %}>最近90天</option>
+      </select>
+    </div>
+    <button class="btn" type="submit">检索</button>
+    {# Params with no visible control in this form are carried as hidden fields
+       so hitting 检索 doesn't silently reset the keyword chip, the sort choice,
+       or the keyword-count window the reader had set. #}
+    {% for kw in active_keywords %}<input type="hidden" name="keyword" value="{{ kw }}">{% endfor %}
+    {% if sort and sort != 'relevance' %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
+    {% if kw_days and kw_days != '30' %}<input type="hidden" name="kw_days" value="{{ kw_days }}">{% endif %}
+    {% if show_zero %}<input type="hidden" name="show_zero" value="1">{% endif %}
+  </div>
+
+  {# Applied conditions echoed back as removable chips. Each × links to the
+     same URL minus that one param, so a reader can peel filters off one at a
+     time instead of clearing everything and starting over. #}
+  {% set has_filters = q or source or min_score or (days and days != 'all') or active_keywords %}
+  {% if has_filters %}
+  <div class="applied">
+    <span class="applied-label">当前条件</span>
+    {% if q %}<a class="applied-chip" href="{{ page_url(q=None, page=None) }}">词：{{ q }}<span class="x">×</span></a>{% endif %}
+    {% for kw in active_keywords %}<a class="applied-chip" href="{{ toggle_keyword_url(kw) }}">{{ kw }}<span class="x">×</span></a>{% endfor %}
+    {% if source %}<a class="applied-chip" href="{{ page_url(source=None, page=None) }}">信源：{{ source }}<span class="x">×</span></a>{% endif %}
+    {% if min_score %}<a class="applied-chip" href="{{ page_url(score=None, page=None) }}">{% if min_score == 5 %}仅 5 分{% else %}{{ min_score }} 分及以上{% endif %}<span class="x">×</span></a>{% endif %}
+    {% if days and days != 'all' %}<a class="applied-chip" href="{{ page_url(days=None, page=None) }}">最近 {{ days }} 天<span class="x">×</span></a>{% endif %}
+    <a class="applied-clear" href="{{ url_for('search') }}">全部清空</a>
+  </div>
+  {% endif %}
+
 </form>
 
 <div class="toolbar">
@@ -314,7 +302,7 @@ body.compact .more{display:none !important}
        q typed (FTS or LIKE mode) OR a keyword chip active (list mode with
        keyword filter, ranked by keyword text position via field weight). #}
     <span class="seg">
-    {% if mode in ('fts', 'like') or (mode == 'list' and active_keyword) %}
+    {% if mode in ('fts', 'like') or (mode == 'list' and active_keywords) %}
       {% if sort == 'relevance' %}<span class="on">相关度</span>{% else %}<a href="{{ page_url(sort='relevance', page=None) }}">相关度</a>{% endif %}
       {% if sort == 'date' %}<span class="on">时间</span>{% else %}<a href="{{ page_url(sort='date', page=None) }}">时间</a>{% endif %}
     {% else %}
@@ -326,7 +314,6 @@ body.compact .more{display:none !important}
   </span>
 
   <span class="toolbar-group right">
-    密度
     <span class="seg" id="density">
       <button type="button" data-density="cozy">舒适</button>
       <button type="button" data-density="compact">紧凑</button>
@@ -334,14 +321,11 @@ body.compact .more{display:none !important}
   </span>
 </div>
 
-{% if degraded %}
-<div class="banner">「{{ q }}」是 2 字词，已用全文模糊匹配，结果完整。</div>
-{% endif %}
 
 {% if rows %}
 <div class="results">
 {% for a in rows %}
-  <article class="card">
+  <article class="card" data-href="{{ article_url(a.id) }}">
     <div class="rail s{{ a.score or 1 }}">
       <span class="n">{{ a.score or '–' }}</span>
       <span class="unit">重要性</span>
@@ -365,12 +349,8 @@ body.compact .more{display:none !important}
       {# Chip lists are capped so one over-tagged article can't swamp the row.
          Companies top out at 12 and matched keywords at 15 in the current
          corpus; the detail page still shows every one of them. #}
-      {% for tag in a.industry_tags[:3] %}<span class="chip">{{ tag }}</span>{% endfor %}
-      {% if a.industry_tags|length > 3 %}<span class="chip chip-more" title="{{ a.industry_tags[3:]|join('、') }}">+{{ a.industry_tags|length - 3 }}</span>{% endif %}
-      {% for c in a.companies[:4] %}<span class="chip chip-company">{{ c }}</span>{% endfor %}
-      {% if a.companies|length > 4 %}<span class="chip chip-more" title="{{ a.companies[4:]|join('、') }}">+{{ a.companies|length - 4 }}</span>{% endif %}
-      {% for kw in a.matched_keyword_list[:4] %}<span class="chip chip-kw">{{ kw }}</span>{% endfor %}
-      {% if a.matched_keyword_list|length > 4 %}<span class="chip chip-more" title="{{ a.matched_keyword_list[4:]|join('、') }}">+{{ a.matched_keyword_list|length - 4 }}</span>{% endif %}
+      {% for tag in a.industry_tags[:5] %}<span class="chip">{{ tag }}</span>{% endfor %}
+      {% if a.industry_tags|length > 5 %}<span class="chip chip-more" title="{{ a.industry_tags[5:]|join('、') }}">+{{ a.industry_tags|length - 5 }}</span>{% endif %}
       {% if a.url %}<a class="foot-link" href="{{ a.url }}" target="_blank" rel="noopener noreferrer">原文 ↗</a>{% endif %}
     </div>
   </article>
@@ -419,9 +399,8 @@ body.compact .more{display:none !important}
     <circle cx="10.5" cy="10.5" r="6.6" fill="none" stroke="currentColor" stroke-width="1.6"/>
     <path d="M15.4 15.4L21 21" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
   </svg>
-  {% if q or source or min_score or (days and days != 'all') or active_keyword %}
+  {% if q or source or min_score or (days and days != 'all') or active_keywords %}
     <div class="empty-title">没有符合条件的文章</div>
-    可以清空检索词，或把评分 / 时间范围放宽一档。<br>
     <a href="{{ url_for('search') }}" style="display:inline-block;margin-top:12px">清空所有条件</a>
   {% else %}
     <div class="empty-title">还没有归档的文章</div>
@@ -466,6 +445,25 @@ body.compact .more{display:none !important}
     btn.addEventListener('click', function(){
       var open = sum.classList.toggle('open');
       btn.textContent = open ? '收起' : '展开';
+    });
+  });
+
+  /* --- click anywhere on a card to open it. Skips clicks that land on real
+     interactive elements (title link, 展开/收起, 原文↗). Middle-click and
+     Cmd/Ctrl-click open in a new tab. --- */
+  Array.prototype.forEach.call(document.querySelectorAll('.card[data-href]'), function(card){
+    card.addEventListener('click', function(e){
+      if(e.target.closest('a, button')) return;
+      if(window.getSelection && String(window.getSelection())) return;
+      var url = card.getAttribute('data-href');
+      if(e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) window.open(url, '_blank');
+      else window.location.href = url;
+    });
+    card.addEventListener('auxclick', function(e){
+      if(e.button !== 1) return;
+      if(e.target.closest('a, button')) return;
+      e.preventDefault();
+      window.open(card.getAttribute('data-href'), '_blank');
     });
   });
 

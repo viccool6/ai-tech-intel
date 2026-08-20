@@ -40,8 +40,10 @@
   --score2:#807a6b;
   --score1:#b3ab9c;
   /* type */
-  --serif:"Songti SC","Source Han Serif SC","Noto Serif CJK SC",Georgia,"Times New Roman",serif;
   --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  /* 中文全部走 sans；--serif 别名指向 sans，避免各处 var(--serif) 分叉。
+     article-body 的英文原文段落仍显式使用 Georgia italic，见 article.html。 */
+  --serif:var(--sans);
   --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   /* geometry */
   --r-sm:4px; --r:7px; --r-lg:10px; --r-pill:999px;

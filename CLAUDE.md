@@ -59,10 +59,40 @@
 - 两处 gate 必须 lockstep：`run.py._should_translate()` 和 `storage.articles_needing_translation()` 的 SQL；改一处漏一处会静默漂移
 - 阈值常量在 `src/config.py`：`SCORE_THRESHOLD_FULL_BODY = 4`，同一常量也决定详情页是否展示"抓取到的正文"
 
-### 关键词表 20 个（9 中文概念 + 11 英文专有名词）
-- 中文覆盖产业动向词：算力 / 芯片 / 数据中心 / 供应链 / 先进封装 / 资本开支 / 产能 / 出口管制 / 推理
-- 英文覆盖厂商与技术缩写：HBM / GPU / ASIC / CoWoS / DRAM / NVIDIA / TSMC / SK Hynix / Micron / AMD / Broadcom
-- 增删关键词后必须 `python run.py --add-keyword X` / `--remove-keyword X`——它会触发 `storage.reindex()` 把 matched_keywords 列和 FTS 影子表都重建
+### 关键词表 18 个（2026-08-21 起）
+- 产业动向词：算力 / 数据中心 / 先进封装 / 资本开支 / 出口管制 / 液冷 / 光模块
+- 技术缩写：HBM / GPU / ASIC / CoWoS / DRAM
+- 厂商（双名合并）：NVIDIA/英伟达 · TSMC/台积电 · SK Hynix/海力士 · Broadcom
+- AI 应用层：OpenAI / Anthropic
+- **别名机制**：JSON 里写 `"NVIDIA/英伟达"` 一条即代表两个同义词，`src/keywords.py` `matched_keywords()` 按 `/` 切开、任一子词命中即算这条命中；DB 存整串 `"NVIDIA/英伟达"`，chip 上也这样显示
+- 删了：芯片（噪声太高，广搜 "芯片"字面命中任何半导体新闻）/ 供应链 / 产能 / 电力 / Micron / AMD / 推理
+- 增删关键词后必须 `python run.py --add-keyword X` / `--remove-keyword X`；直接改 JSON 也 OK，随后 `python -m src.storage reindex` 手动重算 matched_keywords + FTS
+
+### 产业标签 11 个（AI 只能从这 11 个里选）
+`src/scorer.py` TAGS 字典 + `config/scoring_rules.json` allow-list 双向同步：
+存储 / 先进封装 / 晶圆代工 / 芯片设计 / 光通信 / 服务器/系统 / 云厂商 / 大模型 / 电力/散热 / 设备 / 上游材料
+
+改名／增删标签**必须两个文件一起改**，否则 AI 输出会被扔进 fallback。历史数据同步用：
+```sql
+UPDATE articles SET industry_tags = REPLACE(industry_tags, '旧名', '新名') WHERE industry_tags LIKE '%旧名%';
+```
+之后 `python -m src.storage reindex` 让 FTS 影子表跟上。
+
+### 广告 CTA / 相关阅读 过滤放在渲染时
+- `src/search.py` 的 `_BOILERPLATE_PATTERNS`（casefold 子串）+ `_CUTOFF_PATTERNS`（触发后整个尾部截断）+ `filter_boilerplate_pairs()`
+- `app.py` 详情页视图调用它成对过滤 en/cn 段落，保持对齐
+- **不改 DB**：新加模式只需改常量表，历史文章立刻按新规过滤；错杀了改常量就恢复
+- 已覆盖 THE DECODER 全套（订阅/AI Radar/十年档案/无炒作策划）+ 通用 "You might also like"/"你可能还喜欢"/"相关阅读" 截断
+
+### 关键词多选（AND 语义）
+- `?keyword=HBM&keyword=先进封装` 交集过滤，与信源/评分/时间筛选一致，越加越窄
+- 前端：点已选 chip 移除；点未选 chip 追加；"当前条件"每个 chip 独立 ×
+- 后端：`request.args.getlist('keyword')`；`toggle_keyword_url()` 是新的 template global
+- `page_url()` 已改用 `request.args.getlist()` 保留多值参数
+
+### 前端字体统一到 var(--sans)
+- `--serif` 别名指向 `--sans`（苹方系）—— 全站 CJK 统一无衬线
+- 英文段落 `.en` 从 Georgia italic 改成 sans 非斜体；靠 `color:#9c9584` 保持视觉分层
 
 ## 红线
 
@@ -89,6 +119,24 @@
 - 修改 `prompts/news_analysis.md` 时千万别把"JSON"字样去掉
 
 ## 已知问题与取舍
+
+### Mac 本地环境：.venv 断链，实际用 anaconda（2026-08 发现）
+- `.venv/bin/python3.14 -> /Library/Frameworks/Python.framework/Versions/3.14/bin/python3.14` —— 3.14 已经不在系统里，symlink 断
+- `source .venv/bin/activate` 后 `which python` 回落到 `/Users/vic/anaconda3/bin/python`（PATH 里 anaconda 优先）
+- 后果：`pip install` 装到 anaconda 全局环境，不进 venv；venv 目录基本是摆设
+- **正确调用**：一律用绝对路径 `/Users/vic/anaconda3/bin/python run.py ...` / `... app.py` / `... -m src.storage reindex`。别信 `.command` 双击启动器（不确定它用哪个 Python）
+- **重建方案（TODO）**：`rm -rf .venv && /Users/vic/anaconda3/bin/python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`——但要先补齐 requirements.txt（见下条），且验证 launchd/`mac-daily.sh` 里的 python 路径
+
+### requirements.txt 缺 lxml_html_clean
+- lxml 6.0 起把 `lxml.html.clean` 拆成独立包 `lxml_html_clean`
+- 现在 `requirements.txt` 没列，装完一跑 `run.py` 会崩 `ImportError: lxml.html.clean module is now a separate project`
+- 手动 `pip install lxml_html_clean` 能修，但下次重建 venv 又忘。**待办**：把 `lxml_html_clean>=0.4` 加进 requirements.txt
+
+### launchd 从来没装载过（旧 CLAUDE.md 误记）
+- `launchctl list | grep aitechintel` 空返回；`~/Library/LaunchAgents/` 里也没有 plist
+- 每天 03:15 根本不触发；用户 15 号手动跑完之后，5 天数据全靠 20 号手动 `--hours 120` 补
+- `deploy/com.viceng.aitechintel.plist` 里所有路径都写着 `/Users/vic/Desktop/实习/中信建投.../AI-Tech-Intel-V1`，**实际路径没有 `实习/` 那一层**，即使装载也会因为路径不存在而失败
+- **正式启用需要三步**：改 plist 里 5 处路径 → 干掉 mac-daily.sh 里的 scp+ssh 步骤（服务器还没上线）→ `launchctl load ~/Library/LaunchAgents/com.viceng.aitechintel.plist`
 
 ### 服务器网络：Google News 完全不通
 - `news.google.com` 从服务器访问 HTTP 000（连不上），4 个 `google_*` 源在服务器上无法直接工作
@@ -134,6 +182,13 @@
 - **第 5B 轮 服务器可达信源改造**（`b5f4400`）：Bing 4 源（HBM / CapEx / CoWoS / people）+ TrendForce Insights + SemiWiki；Google 4 源标 `requires_proxy: true`，`fetchers.py` 遇到不通自动跳过并 `[requires_proxy]` 日志；`article_parser` 支持 Bing wrapper 解包；publisher 黑名单 10 域（seekingalpha / invezz / msn 等散户资讯站）
 - Deploy 配置：`deploy/gunicorn.service` + `deploy/ai-tech-intel.service+.timer` + `deploy/nginx.conf`，全用 `<SYSTEM_USER>` / `<APP_PATH>` / `<DOMAIN>` 占位符
 - **第 6 轮 UI 改造**（纯模板层，未动 `app.py` / `src/`）：抽出 `base.html`；检索页表格改卡片流；新增当前条件回显、密度切换、`/` 聚焦、排序/密度 sticky 工具条；详情页新增阅读进度条、滚动吸顶标题、中英切换改前端即时切换（保留链接兜底）、正文字号调节、复制摘要/链接。旧模板留在 `templates/*.html.orig` 作对照，确认后可删
+- **第 7 轮 关键词面板 + UI 收口 + 广告过滤**（2026-08-20/21）：
+  - 关键词：删 5 加 5 换到 20 → 再合并双名 + 加海力士别名，收敛到 18 个（NVIDIA/英伟达 / TSMC/台积电 / SK Hynix/海力士 三对双名合并）
+  - 别名机制：`src/keywords.py` `matched_keywords()` 按 `/` 切子词，任一命中；DB 存整串
+  - 多选：`?keyword=X&keyword=Y` AND 语义；`toggle_keyword_url` template global；per-chip 独立 × 移除；`page_url` 改 getlist 保多值
+  - 标签重命名："大模型/应用层" → "大模型"（scorer.py + scoring_rules.json + DB 39 行迁移 + reindex）
+  - UI 收口：源卡片扁化、涉及公司整栏删、按钮统一 ghost 小尺寸、检索栏改一行、字体统一到 sans、"AI 打分理由"卡片移入"重要性"徽章 ⓘ tooltip、监控关键词面板从底部移到顶部、卡片整块可点击 + 中键/Cmd 新标签、hero 图限 420×240
+  - 广告过滤：`src/search.py` 新增 `_BOILERPLATE_PATTERNS` / `_CUTOFF_PATTERNS` / `filter_boilerplate_pairs`；`app.py` 详情页调用；已覆盖 THE DECODER 全套 + 通用相关阅读截断
 
 ### UI 层已定决策
 - **不建 `static/` 目录**：CSS/JS 继续内联在模板里。理由是 nginx 现在把 `/` 全量 proxy 给 gunicorn，加静态目录就要同步改 nginx location + 部署手册，收益不值
@@ -151,7 +206,12 @@
 - 阻塞项：等项目负责人给出正式 `<APP_PATH_ON_SERVER>` 目录 + 安全组白名单
 
 ### 后续
-- 观察 1-2 周 launchd 稳定性 + Bing 各源命中率 + DeepSeek 月账单
+- **本地环境三件事修一下**（阻塞每日自动跑）：
+  1. 修 `deploy/com.viceng.aitechintel.plist` 里 5 处路径（去掉 `实习/`）
+  2. 修 `deploy/mac-daily.sh` —— 服务器上线前暂时干掉 step 3/4（scp + ssh），或者在 SERVER 变量为空时 skip
+  3. `launchctl load ~/Library/LaunchAgents/com.viceng.aitechintel.plist` 首次装载
+- **补齐 requirements.txt** 加 `lxml_html_clean>=0.4`，之后重建 .venv 走干净的 Python 3.11+
+- 观察 1-2 周 Bing 各源命中率 + DeepSeek 月账单
 - 视命中情况决定是否给 bing_people 拆成三个人物源（Bing OR 语法有限，pipe OR 返回结果偏旧，b5f4400 干跑统计里 24h/168h 命中都是 0）
 - 若 Bing/直连源长期偏低，回头评估给服务器加代理让 Google 4 源也能跑（现在 `requires_proxy: true` 会自动跳过）
 

@@ -145,6 +145,9 @@ summary:hover{color:var(--accent)}
 <div class="source-card">
   <div class="source-grid">
     <div class="label">真实来源</div><div>{{ article.publisher or article.source_name or "未识别" }}</div>
+    {% if article.source_name and article.source_name != article.publisher %}
+    <div class="label">抓取信源</div><div>{{ article.source_name }}</div>
+    {% endif %}
     <div class="label">作者</div>
     <div>
       {% if article.author_status == 'named' and article.author %}{{ article.author }}

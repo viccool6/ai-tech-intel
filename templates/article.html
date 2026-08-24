@@ -180,7 +180,7 @@ summary:hover{color:var(--accent)}
   <div class="reason"><b>状态说明：</b>AI 处理失败，本页仅展示原始摘要与关键词规则评分，不应视为 AI 翻译或 AI 结论。{% if article.ai_error %} 错误：{{ article.ai_error }}{% endif %}</div>
 {% endif %}
 
-{% if article.main_image %}<img class="hero" src="{{ article.main_image }}" alt="文章主图">{% endif %}
+{% if article.main_image and (article.score or 0) >= score_threshold_full_body %}<img class="hero" src="{{ article.main_image }}" alt="文章主图">{% endif %}
 
 {% if (article.score or 0) >= score_threshold_full_body %}
 {% if article.paragraphs %}

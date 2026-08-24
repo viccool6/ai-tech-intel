@@ -5,8 +5,9 @@ import sqlite3
 from pathlib import Path
 
 from dotenv import load_dotenv
-from flask import Flask, abort, g, render_template, request, url_for
+from flask import Flask, abort, g, redirect, render_template, request, session, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.security import check_password_hash
 
 # Load .env once at import time so app.py and gunicorn get the same view
 # of the environment as run.py already does. This deliberately replaces the
@@ -72,6 +73,16 @@ def create_app() -> Flask:
     app.config["DB_PATH"] = str(BASE / "data/news.db")
     app.config["KEYWORDS_PATH"] = str(BASE / "config/watch_keywords.json")
 
+    # Session cookie signing key. Required for login state to survive across
+    # requests. Set in .env — a missing key means every session cookie is
+    # unsignable, so login would silently fail; fail loud instead.
+    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY") or "dev-only-do-not-ship"
+    app.config["LOGIN_PASSWORD_HASH"] = os.environ.get("LOGIN_PASSWORD_HASH", "")
+    # Long-lived session so a reader doesn't get bounced back to /login every
+    # time the tab sleeps. 30 days is short enough that a stolen laptop
+    # eventually re-auths.
+    app.config["PERMANENT_SESSION_LIFETIME"] = 60 * 60 * 24 * 30
+
     # x_prefix=1 lets nginx mount us under a subpath by sending
     # X-Forwarded-Prefix; url_for() then generates correctly-prefixed links.
     # No header = SCRIPT_NAME stays empty, so local dev is unaffected.
@@ -89,6 +100,42 @@ def create_app() -> Flask:
         db = g.pop("db", None)
         if db is not None:
             db.close()
+
+    # Endpoints that don't require login. Static files are exempted too so
+    # a login page can eventually pull CSS/JS without a redirect loop.
+    PUBLIC_ENDPOINTS = {"login", "logout", "static"}
+
+    @app.before_request
+    def _require_login():
+        if session.get("auth"):
+            return None
+        if request.endpoint in PUBLIC_ENDPOINTS:
+            return None
+        # Preserve where the reader was headed so login can bounce them back.
+        return redirect(url_for("login", next=request.full_path.rstrip("?")))
+
+    @app.route("/login", methods=["GET", "POST"])
+    def login():
+        error = None
+        if request.method == "POST":
+            pw = request.form.get("password", "")
+            expected = app.config["LOGIN_PASSWORD_HASH"]
+            if expected and check_password_hash(expected, pw):
+                session.permanent = True
+                session["auth"] = True
+                nxt = request.args.get("next") or request.form.get("next") or url_for("search")
+                # Only allow same-app redirects; ignore protocol-relative or
+                # absolute URLs to prevent open-redirect abuse.
+                if not nxt.startswith("/"):
+                    nxt = url_for("search")
+                return redirect(nxt)
+            error = "密码不对"
+        return render_template("login.html", error=error, next=request.args.get("next", ""))
+
+    @app.route("/logout")
+    def logout():
+        session.clear()
+        return redirect(url_for("login"))
 
     @app.route("/")
     def search():

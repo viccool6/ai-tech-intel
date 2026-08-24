@@ -98,6 +98,13 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,su
 }
 .masthead-stats{margin-left:auto;display:flex;gap:18px;font-size:12px;color:rgba(244,239,228,.72)}
 .masthead-stats b{color:#fff;font-weight:600}
+.masthead-logout{
+  font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+  color:rgba(244,239,228,.55);border:1px solid rgba(244,239,228,.22);
+  padding:4px 10px;border-radius:var(--r-sm);margin-left:12px;
+  transition:color var(--dur) var(--ease),border-color var(--dur) var(--ease)
+}
+.masthead-logout:hover{color:#fff;border-color:rgba(244,239,228,.6)}
 @media(max-width:700px){
   .masthead-kicker{border-left:none;padding-left:0}
   .masthead-stats{margin-left:0;width:100%;gap:14px;flex-wrap:wrap}
@@ -206,6 +213,9 @@ mark{background:var(--mark);color:inherit;padding:0 1px;border-radius:2px}
     <h1 class="masthead-title"><a href="{{ url_for('search') }}">AI科技产业情报</a></h1>
     <span class="masthead-kicker">Industry Intelligence</span>
     {% block masthead_stats %}{% endblock %}
+    {% if session.get('auth') and request.endpoint != 'login' %}
+      <a class="masthead-logout" href="{{ url_for('logout') }}">退出</a>
+    {% endif %}
   </div>
 </header>
 

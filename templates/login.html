@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}登录 · AI科技产业情报{% endblock %}
+{% block body_class %}page-login{% endblock %}
+
+{% block extra_style %}
+body.page-login .masthead-title a{pointer-events:none}
+.login-wrap{
+  max-width:420px;margin:min(12vh,88px) auto 0;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+  box-shadow:var(--sh-2);padding:32px 34px 28px
+}
+.login-eyebrow{
+  font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;margin:0 0 6px
+}
+.login-title{
+  font-family:var(--serif);font-size:22px;font-weight:700;color:var(--ink);
+  margin:0 0 4px;letter-spacing:.02em
+}
+.login-sub{font-size:13px;color:var(--muted);margin:0 0 22px}
+.login-field{position:relative;margin:0 0 14px}
+.login-field label{
+  display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--faint);font-weight:600;margin:0 0 6px
+}
+.login-field input{
+  width:100%;box-sizing:border-box;border:1px solid var(--line-strong);border-radius:var(--r);
+  padding:10px 12px;font-size:15px;font-family:inherit;background:var(--surface);color:var(--ink);
+  transition:border-color var(--dur) var(--ease),box-shadow var(--dur) var(--ease)
+}
+.login-field input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-wash)}
+.login-error{
+  background:var(--accent-wash);border:1px solid #e2c3bd;color:var(--accent-ink);
+  font-size:13px;padding:8px 12px;border-radius:var(--r);margin:0 0 14px
+}
+.login-btn{
+  width:100%;border:0;background:var(--ink);color:#fff;font-family:inherit;
+  padding:11px 0;font-size:14px;letter-spacing:.08em;cursor:pointer;
+  border-radius:var(--r);transition:background var(--dur) var(--ease);margin-top:6px
+}
+.login-btn:hover{background:var(--accent)}
+.login-foot{
+  margin:22px 0 0;padding-top:16px;border-top:1px dashed var(--line);
+  font-size:11.5px;color:var(--faint);text-align:center;letter-spacing:.04em
+}
+{% endblock %}
+
+{% block content %}
+<div class="login-wrap">
+  <p class="login-eyebrow">Industry Intelligence</p>
+  <h2 class="login-title">登录访问</h2>
+  <p class="login-sub">早安。今天的 AI 产业链长这样。</p>
+
+  {% if error %}<div class="login-error">{{ error }}</div>{% endif %}
+
+  <form method="post" action="{{ url_for('login') }}" autocomplete="off">
+    <input type="hidden" name="next" value="{{ next }}">
+    <div class="login-field">
+      <label for="password">密码</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" autofocus required>
+    </div>
+    <button class="login-btn" type="submit">进入</button>
+  </form>
+
+  <p class="login-foot">仅供内部研究使用</p>
+</div>
+{% endblock %}

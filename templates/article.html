@@ -3,9 +3,9 @@
 {% block body_class %}page-article{% endblock %}
 
 {% block extra_style %}
-.wrap{max-width:880px}
+.wrap{max-width:820px;font-size:13px}
 
-/* ---- reading progress + sticky mini-header (appear after the title scrolls off) ---- */
+/* ---- reading progress + sticky mini-header ---- */
 .progress{position:fixed;top:0;left:0;height:2px;width:0;background:var(--accent);z-index:60;transition:width .08s linear}
 .sticky-bar{
   position:fixed;top:0;left:0;right:0;z-index:55;
@@ -14,7 +14,7 @@
   transform:translateY(-100%);transition:transform var(--dur) var(--ease)
 }
 .sticky-bar.show{transform:translateY(0)}
-.sticky-inner{max-width:880px;margin:0 auto;padding:9px 20px;display:flex;align-items:center;gap:11px}
+.sticky-inner{max-width:820px;margin:0 auto;padding:9px 20px;display:flex;align-items:center;gap:11px}
 .sticky-title{
   font-family:var(--serif);font-size:14px;font-weight:600;color:var(--ink);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis
@@ -23,98 +23,91 @@
 .sticky-back{font-size:13px;color:var(--muted);flex:none}
 .sticky-back:hover{color:var(--accent)}
 
-.back{font-size:13px;margin:18px 0 14px}
+.back{font-size:13px;margin:12px 0 14px}
 .back a{color:var(--muted);display:inline-flex;align-items:center;gap:5px;transition:color var(--dur) var(--ease),gap var(--dur) var(--ease)}
 .back a:hover{color:var(--accent);gap:8px}
 
 /* ---- headline block ---- */
 .head-meta{
   display:flex;align-items:center;gap:7px;flex-wrap:wrap;
-  border-top:2px solid var(--ink);padding-top:13px
+  border-top:2px solid var(--ink);padding-top:14px
 }
 .fallback-tag{
   display:inline-block;padding:2px 8px;font-size:11.5px;font-weight:600;
   color:#7a5b18;background:#fbf1d6;border:1px solid #e0c46c;border-radius:var(--r-sm)
 }
-h1{font-family:var(--serif);font-size:31px;line-height:1.42;margin:16px 0 6px;letter-spacing:-.01em}
+h1{font-family:var(--serif);font-size:32px;line-height:1.4;margin:18px 0 6px;letter-spacing:-.005em;font-weight:700}
 .en-title{
   font-family:var(--sans);
-  color:var(--faint);font-size:14.5px;line-height:1.6;margin-bottom:22px
+  color:var(--faint);font-size:14px;line-height:1.55;margin-bottom:12px
 }
 
-/* ---- source card ---- */
-.source-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:10px 16px;margin:14px 0;box-shadow:var(--sh-1)}
-.source-grid{display:grid;grid-template-columns:76px 1fr;gap:3px 14px;font-size:13.5px}
-.label{color:var(--faint);font-size:12.5px}
-.source-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line-soft)}
-.action-btn{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;padding:5px 11px;font-weight:500}
-.action-btn.done{color:#3f6b3d;border-color:#a8c3a3;background:#f2f7f1}
+/* ---- byline: 时间 · 来源 · 产业链环节 ---- */
+.byline{
+  font-size:12.5px;color:var(--muted);
+  padding-bottom:12px;border-bottom:1px solid var(--line);margin-bottom:6px
+}
+.byline .sep{margin:0 10px;color:var(--line-strong)}
 
-/* ---- AI summary as the page's pull quote ---- */
-.summary{
-  background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--accent);
-  padding:11px 16px;margin:16px 0 0;border-radius:0 var(--r) var(--r) 0;font-size:14px;line-height:1.7
-}
-.summary .tag{
-  display:inline-block;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
-  color:var(--accent);font-weight:700;margin-right:8px
-}
+/* ---- AI 摘要 眉标 + 正文 ---- */
+.lede-attr{font-size:12px;color:var(--muted);font-weight:500;margin:10px 0 4px}
+.lede{font-size:14px;line-height:1.65;margin:0;color:var(--ink);font-weight:400}
 .reason{
-  border:1px dashed var(--line-strong);border-top:0;border-radius:0 0 var(--r) var(--r);
-  padding:8px 16px;color:#8f4136;font-size:12.5px;background:#fdf8f6;margin-bottom:18px
+  border:1px dashed var(--line-strong);padding:8px 16px;border-radius:var(--r);
+  color:#8f4136;font-size:12.5px;background:#fdf8f6;margin:10px 0 0
 }
 .reason b{color:var(--accent-ink)}
-img.hero{display:block;max-width:420px;width:100%;height:auto;margin:18px auto;border-radius:var(--r);border:1px solid var(--line)}
 
-/* ---- body toolbar: view toggle + font size ---- */
+/* ---- actions: 文字链，主 action 有下划线强调 ---- */
+.actions{margin:14px 0 0;font-size:13px;color:var(--faint);display:flex;gap:20px;align-items:baseline;padding-top:12px;border-top:1px solid var(--line);flex-wrap:wrap}
+.actions a, .actions button{
+  color:var(--muted);background:none;border:0;font-family:inherit;font-size:13px;
+  padding:0;cursor:pointer;transition:color .15s
+}
+.actions a:hover, .actions button:hover{color:var(--accent)}
+.actions .primary{color:var(--ink);font-weight:600;border-bottom:1px solid var(--ink);padding-bottom:1px;text-decoration:none}
+.actions .primary:hover{color:var(--accent);border-bottom-color:var(--accent)}
+.actions .done{color:#3f6b3d}
+
+img.hero{display:block;max-width:420px;width:100%;height:auto;margin:14px auto 4px;border-radius:var(--r);border:1px solid var(--line)}
+
+/* ---- body toolbar: view toggle + font size (compact pill overrides base .seg) ---- */
 .body-toolbar{
   display:flex;align-items:center;gap:12px;flex-wrap:wrap;
-  max-width:720px;margin:30px auto 0;padding-bottom:10px;border-bottom:1px solid var(--line)
+  max-width:720px;margin:14px auto 0;padding-bottom:8px;border-bottom:1px solid var(--line)
 }
 .body-toolbar .tb-label{font-size:12px;color:var(--muted)}
 .body-toolbar .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.body-toolbar .seg{
+  background:var(--surface-2);border:1px solid var(--line);border-radius:99px;padding:0;overflow:visible
+}
+.body-toolbar .seg > *{padding:3px 10px;border-radius:99px;border-right:0;font-size:12px}
+.body-toolbar .seg .on{background:var(--ink);color:#fff}
 .translate-note{max-width:720px;margin:10px auto 0;font-size:12px;color:#7a5b18;background:#fdf6e3;border:1px solid #e8d9a8;border-radius:var(--r-sm);padding:7px 11px}
 
 /* ---- bilingual body ---- */
-.article-body{max-width:720px;margin:18px auto 34px;color:#2a2722}
-/* Each EN/ZH pair is wrapped so hovering either half tints both — makes it
-   obvious which translation belongs to which source paragraph. */
-.pair{border-radius:var(--r-sm);padding:2px 10px;margin:0 -10px;transition:background var(--dur) var(--ease)}
+.article-body{max-width:720px;margin:14px auto 30px;color:#2a2722}
+.pair{border-radius:var(--r-sm);padding:1px 10px;margin:0 -10px;transition:background var(--dur) var(--ease)}
+.article-body .pair + .pair{margin-top:2px}
 .article-body:not(.only-cn) .pair:hover{background:#f7f3ea}
 .article-body .en{
   font-family:var(--sans);color:#9c9584;
-  font-size:calc(13.5px * var(--fs,1));line-height:1.7;margin:6px 0 1px
+  font-size:calc(14px * var(--fs,1));line-height:1.7;margin:2px 0 0
 }
-.article-body .zh{font-size:calc(16.5px * var(--fs,1));line-height:1.85;color:#232323;margin:1px 0 6px;transition:font-size var(--dur) var(--ease)}
-.article-body.only-cn .pair{padding:0;margin:0}
-.article-body.only-cn .zh{margin:0 0 8px}
+.article-body .zh{font-size:calc(14px * var(--fs,1));line-height:1.7;color:#232323;margin:0;transition:font-size var(--dur) var(--ease)}
 .article-body.only-cn .en{display:none}
 
-.empty-body,.body-suppressed{
+.empty-body{
   max-width:720px;margin:22px auto;padding:18px 20px;border-radius:var(--r-lg);
-  font-size:13.5px;line-height:1.85
+  font-size:13.5px;line-height:1.85;
+  background:var(--surface);border:1px dashed var(--line-strong);color:var(--muted);text-align:center
 }
-.empty-body{background:var(--surface);border:1px dashed var(--line-strong);color:var(--muted);text-align:center}
-.body-suppressed{background:var(--surface-2);border:1px solid var(--line);color:var(--ink-soft)}
-.body-suppressed b{color:var(--ink)}
-
-details{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:13px 17px;margin:22px 0}
-details p{margin:9px 0;font-size:13px;color:var(--ink-soft);word-break:break-all}
-summary{cursor:pointer;font-weight:600;font-size:13.5px;color:var(--muted);list-style:none;display:flex;align-items:center;gap:7px}
-summary::-webkit-details-marker{display:none}
-summary::before{
-  content:"";width:0;height:0;border-left:5px solid currentColor;
-  border-top:4px solid transparent;border-bottom:4px solid transparent;
-  transition:transform var(--dur) var(--ease)
-}
-details[open] summary::before{transform:rotate(90deg)}
-summary:hover{color:var(--accent)}
 
 @media(max-width:640px){
   h1{font-size:24px}
-  .source-grid{grid-template-columns:1fr;gap:3px 0}
-  .label{font-weight:600;margin-top:8px}
   .sticky-inner{padding:8px 16px}
+  .byline{font-size:12px}
+  .byline .sep{margin:0 6px}
 }
 {% endblock %}
 
@@ -141,46 +134,27 @@ summary:hover{color:var(--accent)}
 <div class="en-title">{{ article.title_original }}</div>
 {% endif %}
 
-<div class="source-card">
-  <div class="source-grid">
-    <div class="label">来源</div><div>{{ article.publisher or article.source_name or "未识别" }}</div>
-    {% if article.chain_positions %}
-    <div class="label">产业位置</div><div>{{ article.chain_positions | join(' · ') }}</div>
-    {% endif %}
-    <div class="label">作者</div>
-    <div>
-      {% if article.author_status == 'named' and article.author %}{{ article.author }}
-      {% elif article.author_status == 'institutional' %}{{ article.publisher or article.source_name or "未知机构" }}（机构发布）
-      {% else %}未识别{% endif %}
-    </div>
-    {% if article.date_is_verified %}
-      <div class="label">发布时间</div>
-      <div class="num">{{ article.published_display or article.published_at[:10] }}</div>
-    {% elif article.display_date %}
-      <div class="label">归档日期</div>
-      <div class="num">{{ article.display_date }}（来源未核实）<span class="date-info" data-info><svg class="date-info-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="4.7" r="0.9" fill="currentColor"/><path d="M8 7.4V11.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span class="date-info-tip">本篇信源未提供可靠的发布时间，精确时间请点原文链接核对。</span></span></div>
-    {% endif %}
-  </div>
-  <div class="source-actions">
-    {% if article.url %}
-    <a class="btn btn-ghost action-btn" href="{{ article.url }}" target="_blank" rel="noopener noreferrer">
-      打开原文网页
-      <svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3h7v7M13 3L6.5 9.5M11 10.5V13H3V5h2.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </a>
-    {% endif %}
-    {# Copy helpers — this page's output usually ends up pasted into a note or
-       a chat, so save the select-and-drag. #}
-    <button type="button" class="btn btn-ghost action-btn" data-copy="summary">复制中文摘要</button>
-    <button type="button" class="btn btn-ghost action-btn" data-copy="link">复制原文链接</button>
-  </div>
+<div class="byline">
+  {% if article.date_is_verified %}
+    {{ article.published_display or article.published_at[:10] }}
+  {% elif article.display_date %}
+    {{ article.display_date }}（未核实）
+  {% endif %}
+  <span class="sep">·</span>{{ article.publisher or article.source_name or "未识别" }}
+  {% if article.chain_positions %}<span class="sep">·</span>产业链环节：{{ article.chain_positions | join('、') }}{% endif %}
 </div>
 
-{% if article.ai_succeeded %}
-  <div class="summary" id="summaryText"><span class="tag">AI 中文摘要</span>{{ article.summary_cn }}</div>
-{% else %}
-  <div class="summary" id="summaryText"><span class="tag">原始摘要 / 规则回退</span>{{ article.summary_cn or article.rss_summary or "（无摘要）" }}</div>
-  <div class="reason"><b>状态说明：</b>AI 处理失败，本页仅展示原始摘要与关键词规则评分，不应视为 AI 翻译或 AI 结论。{% if article.ai_error %} 错误：{{ article.ai_error }}{% endif %}</div>
+<div class="lede-attr">{% if article.ai_succeeded %}AI 摘要{% else %}原始摘要（规则回退）{% endif %}</div>
+<p class="lede" id="summaryText">{{ article.summary_cn or article.rss_summary or "（无摘要）" }}</p>
+{% if not article.ai_succeeded %}
+<div class="reason"><b>状态说明：</b>AI 处理失败，本页仅展示原始摘要与关键词规则评分。{% if article.ai_error %} 错误：{{ article.ai_error }}{% endif %}</div>
 {% endif %}
+
+<div class="actions">
+  {% if article.url %}<a class="primary" href="{{ article.url }}" target="_blank" rel="noopener noreferrer">阅读原文 ↗</a>{% endif %}
+  <button type="button" data-copy="summary">复制摘要</button>
+  <button type="button" data-copy="link">复制链接</button>
+</div>
 
 {% if article.main_image and (article.score or 0) >= score_threshold_full_body %}<img class="hero" src="{{ article.main_image }}" alt="文章主图">{% endif %}
 
@@ -188,7 +162,6 @@ summary:hover{color:var(--accent)}
 {% if article.paragraphs %}
   {% if article.paragraphs_cn %}
   <div class="body-toolbar">
-    <span class="tb-label">正文显示</span>
     {# Server-rendered links stay the source of truth (works with JS off);
        the script below upgrades them to an instant class swap. #}
     <span class="seg" id="viewSeg">
@@ -250,14 +223,6 @@ summary:hover{color:var(--accent)}
 </div>
 {% endif %}
 {% endif %}
-
-<details>
-  <summary>查看链接与采集信息</summary>
-  <p><b>最终原文链接：</b><a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">{{ article.url }}</a></p>
-  <p><b>抓取状态：</b>{{ article.fetch_status or '未知' }}{% if article.fetch_error %}；{{ article.fetch_error }}{% endif %}</p>
-  <p><b>日期来源：</b>{{ article.date_source or '未识别' }}</p>
-  <p><b>抓取时间：</b>{{ article.crawled_at or article.archived_at or '' }}</p>
-</details>
 
 {% endblock %}
 

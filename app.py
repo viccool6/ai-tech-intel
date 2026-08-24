@@ -58,7 +58,7 @@ BASE = Path(__file__).resolve().parent
 
 # Single source of truth for search result pagination — change here and
 # both the query and the template display update in lockstep.
-PER_PAGE = 10
+PER_PAGE = 20
 
 # Filter params carried across search ↔ article navigation so the
 # back button restores the exact result set the user was on.

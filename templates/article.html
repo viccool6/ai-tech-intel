@@ -247,11 +247,6 @@ summary:hover{color:var(--accent)}
   {% if article.url %}请点上方 <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">「打开原文网页」</a> 查看。{% endif %}
 </div>
 {% endif %}
-{% else %}
-<div class="body-suppressed">
-  <b>本文重要性 {{ article.score or '未知' }} 分</b>，未展开正文（仅重要性 ≥ {{ score_threshold_full_body }} 分的文章会展示抓取到的正文）。
-  {% if article.url %}如需完整内容，请点上方「打开原文网页」查看。{% endif %}
-</div>
 {% endif %}
 
 <details>

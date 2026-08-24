@@ -46,7 +46,8 @@
   transition:background var(--dur) var(--ease),border-color var(--dur) var(--ease),color var(--dur) var(--ease)
 }
 .kw-list a:hover{background:var(--surface-2);border-color:var(--line);color:var(--ink)}
-.kw-list a.active{background:var(--surface-2);border-color:var(--line-strong);color:var(--ink);font-weight:600}
+/* text-shadow 假粗代替 font-weight，避免 active 时字符宽度变化推挤后续项 */
+.kw-list a.active{background:var(--surface-2);border-color:var(--line-strong);color:var(--ink);text-shadow:0 0 .4px currentColor}
 .kw-list a.active::before{
   content:"■";color:var(--accent);font-size:8px;margin-right:4px;
   transform:translateY(-1px);display:inline-block

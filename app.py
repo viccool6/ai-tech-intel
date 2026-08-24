@@ -38,7 +38,7 @@ from src.search import (
 KEYWORD_GROUPS = [
     ("产业动向", ["算力", "数据中心", "先进封装", "资本开支", "出口管制", "液冷", "光模块"]),
     ("技术缩写", ["HBM", "GPU", "ASIC", "CoWoS", "CPO", "DRAM"]),
-    ("厂商",     ["NVIDIA/英伟达", "TSMC/台积电", "SK Hynix/海力士", "Broadcom"]),
+    ("厂商",     ["NVIDIA/英伟达", "TSMC/台积电", "SK Hynix/海力士", "Broadcom/博通"]),
     ("AI 应用",  ["OpenAI", "Anthropic"]),
 ]
 

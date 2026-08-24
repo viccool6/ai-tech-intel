@@ -230,6 +230,27 @@ def create_app() -> Flask:
         en_paras = article_paragraphs(art.get("article_text", ""))
         cn_paras = article_paragraphs(art.get("article_text_cn", ""))
         art["paragraphs"], art["paragraphs_cn"] = filter_boilerplate_pairs(en_paras, cn_paras)
+
+        # Format published_at as CST datetime when the source gave us a real
+        # timestamp; fall back to just the date if only a date is available.
+        # Parsed via fromisoformat which handles the "+00:00"/"+09:00" suffix
+        # our JSON-LD and RSS sources emit.
+        from datetime import datetime, timezone, timedelta
+        pub = (art.get("published_at") or "").strip()
+        display = ""
+        if pub:
+            try:
+                dt = datetime.fromisoformat(pub)
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                cst = dt.astimezone(timezone(timedelta(hours=8)))
+                # If the original string had no time (bare "YYYY-MM-DD"),
+                # showing HH:MM would be fake precision — just show date.
+                display = cst.strftime("%Y-%m-%d %H:%M" if "T" in pub else "%Y-%m-%d")
+            except ValueError:
+                display = pub[:16].replace("T", " ")
+        art["published_display"] = display
+
         view = request.args.get("view", "both")
         if view not in ("both", "cn"):
             view = "both"

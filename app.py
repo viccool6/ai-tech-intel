@@ -22,11 +22,23 @@ from src.search import (
     filter_boilerplate_pairs,
     get_article,
     keyword_counts,
-    latest_archived_at,
     list_sources,
     search_articles,
     total_articles,
 )
+
+# Presentational grouping of the watchlist keywords. Kept in code (not JSON)
+# because the categorization is display-only — it doesn't affect matching, and
+# with 18 keywords stable for weeks, plumbing a `category` field through JSON
+# + CLI + loader would cost more than the 30-second edit here on the rare
+# occasion a keyword is added or moved. Order within a group controls
+# display order in that row.
+KEYWORD_GROUPS = [
+    ("产业动向", ["算力", "数据中心", "先进封装", "资本开支", "出口管制", "液冷", "光模块"]),
+    ("技术缩写", ["HBM", "GPU", "ASIC", "CoWoS", "DRAM"]),
+    ("厂商",     ["NVIDIA/英伟达", "TSMC/台积电", "SK Hynix/海力士", "Broadcom"]),
+    ("AI 应用",  ["OpenAI", "Anthropic"]),
+]
 
 BASE = Path(__file__).resolve().parent
 
@@ -110,6 +122,33 @@ def create_app() -> Flask:
             keywords=active_keywords, sort=sort, page=page, per_page=PER_PAGE,
         )
         keywords = load_keywords(Path(app.config["KEYWORDS_PATH"]))
+        stats = keyword_counts(db, keywords, days=kw_days)
+        count_by_kw = {s["keyword"]: s["count"] for s in stats}
+        # Group by presentational category. Any keyword in the JSON that is
+        # NOT in KEYWORD_GROUPS gets appended to a fallback "其他" row so
+        # a forgotten mapping update never silently hides it from the UI.
+        grouped = [
+            {"cat": cat,
+             "entries": [{"keyword": kw, "count": count_by_kw.get(kw, 0)} for kw in kws]}
+            for cat, kws in KEYWORD_GROUPS
+        ]
+        known = {kw for _, kws in KEYWORD_GROUPS for kw in kws}
+        orphans = [s for s in stats if s["keyword"] not in known]
+        if orphans:
+            grouped.append({"cat": "其他", "entries": orphans})
+
+        # DB file mtime = end time of the last successful pipeline run:
+        # mac-daily.sh atomically renames the freshly scp'd snapshot into place,
+        # so its mtime records exactly when launchd finished the daily job. On
+        # local dev this instead reflects the last write, but the semantic
+        # ("last time data changed") is what the reader expects either way.
+        try:
+            mtime = os.path.getmtime(app.config["DB_PATH"])
+            from datetime import datetime
+            latest_updated = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M")
+        except OSError:
+            latest_updated = ""
+
         return render_template(
             "search.html",
             q=q, source=source, min_score=min_score, days=days,
@@ -119,11 +158,12 @@ def create_app() -> Flask:
             total=result["total"], rows=result["rows"],
             degraded=result["degraded"], mode=result["mode"],
             sources=list_sources(db),
-            keyword_stats=keyword_counts(db, keywords, days=kw_days),
+            keyword_stats=stats,
+            keyword_stats_grouped=grouped,
             kw_days=kw_days_raw,
             show_zero=show_zero,
             total_all=total_articles(db),
-            latest_updated=latest_archived_at(db),
+            latest_updated=latest_updated,
         )
 
     @app.route("/article/<int:article_id>")

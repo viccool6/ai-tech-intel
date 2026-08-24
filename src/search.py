@@ -290,6 +290,59 @@ def get_article(db: sqlite3.Connection, article_id: int) -> dict | None:
     return _hydrate(row) if row else None
 
 
+def related_articles(
+    db: sqlite3.Connection,
+    current_id: int,
+    tags: list[str],
+    keywords: list[str],
+    limit: int = 6,
+) -> list[dict]:
+    """Rank candidates by (# shared industry_tags) + (# shared matched_keywords),
+    tie-break by newest first. Returns up to `limit` peers, excluding the
+    current article and paywalled rows. Empty tags+keywords → empty list.
+
+    industry_tags is JSON-array-in-string (e.g. `["存储芯片", "先进封装"]`);
+    matched_keywords is pipe-fenced (`|算力|GPU|`). Both use LIKE-with-
+    delimiters so no substring bleed (存储 doesn't match 存储芯片, etc.)."""
+    if not tags and not keywords:
+        return []
+    score_parts, params = [], []
+    for t in tags:
+        score_parts.append("(CASE WHEN industry_tags LIKE ? THEN 1 ELSE 0 END)")
+        params.append(f'%"{t}"%')
+    for k in keywords:
+        score_parts.append("(CASE WHEN matched_keywords LIKE ? THEN 1 ELSE 0 END)")
+        params.append(f'%|{k}|%')
+    score_expr = " + ".join(score_parts)
+    sql = f"""
+      SELECT * FROM (
+        SELECT id, title_cn, title_original, score,
+               publisher, source_name, industry_tags,
+               COALESCE(NULLIF(published_at,''), NULLIF(rss_published_at,''), archived_at) AS pub_ts,
+               ({score_expr}) AS overlap
+        FROM articles
+        WHERE id != ? AND COALESCE(fetch_status,'') != 'paywalled'
+      )
+      WHERE overlap > 0
+      ORDER BY overlap DESC, pub_ts DESC
+      LIMIT ?
+    """
+    rows = db.execute(sql, params + [current_id, limit]).fetchall()
+    out = []
+    for r in rows:
+        out.append({
+            "id": r["id"],
+            "title_cn": r["title_cn"],
+            "title_original": r["title_original"],
+            "score": r["score"],
+            "publisher": r["publisher"],
+            "source_name": r["source_name"],
+            "pub_date": (r["pub_ts"] or "")[:10],
+            "overlap": r["overlap"],
+        })
+    return out
+
+
 def article_paragraphs(text: str) -> list[str]:
     """Split article_text into display paragraphs.
 

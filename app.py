@@ -24,6 +24,7 @@ from src.search import (
     get_article,
     keyword_counts,
     list_sources,
+    related_articles,
     search_articles,
     total_articles,
 )
@@ -274,9 +275,19 @@ def create_app() -> Flask:
         view = request.args.get("view", "both")
         if view not in ("both", "cn"):
             view = "both"
+        # Related peers — only fetched for below-threshold articles where the
+        # detail page would otherwise look empty. For full-body articles the
+        # reader has the full text, no need to distract with related-links noise.
+        related = []
+        if (art.get("score") or 0) < SCORE_THRESHOLD_FULL_BODY:
+            related = related_articles(
+                get_db(), art["id"], art.get("industry_tags") or [],
+                art.get("matched_keyword_list") or [], limit=6,
+            )
         return render_template(
             "article.html", article=art, view=view,
             score_threshold_full_body=SCORE_THRESHOLD_FULL_BODY,
+            related=related,
         )
 
     @app.template_global()

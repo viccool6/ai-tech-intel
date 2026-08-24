@@ -103,6 +103,26 @@ img.hero{display:block;max-width:420px;width:100%;height:auto;margin:14px auto 4
   background:var(--surface);border:1px dashed var(--line-strong);color:var(--muted);text-align:center
 }
 
+/* ---- related peers panel (only shown on low-score / no-body pages) ---- */
+.related{max-width:720px;margin:32px auto 24px}
+.related-title{
+  font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;
+  padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:6px
+}
+.related ul{list-style:none;padding:0;margin:0}
+.related li{padding:10px 0;border-bottom:1px solid var(--line-soft)}
+.related li:last-child{border-bottom:0}
+.related a{display:flex;gap:10px;align-items:baseline;color:var(--ink);transition:color var(--dur) var(--ease)}
+.related a:hover{color:var(--accent)}
+.related .r-score{
+  flex:none;font-size:11px;font-weight:700;color:var(--muted);
+  min-width:22px;text-align:center;font-variant-numeric:tabular-nums;
+  border:1px solid var(--line-strong);border-radius:2px;padding:1px 4px;line-height:1.3
+}
+.related .r-title{flex:1;font-size:13.5px;line-height:1.5}
+.related .r-meta{flex:none;font-size:12px;color:var(--faint);white-space:nowrap}
+
 @media(max-width:640px){
   h1{font-size:24px}
   .sticky-inner{padding:8px 16px}
@@ -222,6 +242,23 @@ img.hero{display:block;max-width:420px;width:100%;height:auto;margin:14px auto 4
   {% if article.url %}请点上方 <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">「打开原文网页」</a> 查看。{% endif %}
 </div>
 {% endif %}
+{% endif %}
+
+{% if related %}
+<div class="related">
+  <div class="related-title">相关阅读</div>
+  <ul>
+    {% for r in related %}
+    <li>
+      <a href="{{ url_for('article', article_id=r.id) }}">
+        <span class="r-score">{{ r.score or '–' }}</span>
+        <span class="r-title">{{ r.title_cn or r.title_original }}</span>
+        <span class="r-meta">{{ r.publisher or r.source_name or '' }}{% if r.pub_date %} · {{ r.pub_date }}{% endif %}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
 {% endif %}
 
 {% endblock %}

@@ -123,6 +123,10 @@
   .b-filter-cell{flex:1 0 calc(33% - 8px)}
   .b-submit{flex:1 0 100%}
 }
+@media(max-width:640px){
+  /* 手机端搜索框回车即提交，检索按钮多余，删掉腾空间 */
+  .b-submit{display:none}
+}
 
 /* ---- active filters: every applied condition is visible and removable ---- */
 .applied{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-top:12px}

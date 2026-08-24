@@ -1,0 +1,15 @@
+{
+  "_comment": "抓取时按 URL 路径或标题子串跳过——这些页面类型正文成分低（播客转写脏、纯视频页只有标题、图集/订阅页几乎无正文），送去 AI 只会浪费额度。fetcher 拉到 RSS 条目后立即检查，命中就丢弃。子串匹配 case-insensitive。补充直接编辑数组，程序读取无需重启（但正在跑的 run.py 用启动时快照）。",
+  "url_patterns": [
+    "/podcast/", "/podcasts/", "/listen/", "/audio/", "/episode/", "/episodes/",
+    "/video/", "/videos/", "/watch/",
+    "/gallery/", "/slideshow/", "/photos/",
+    "/newsletter/", "/newsletters/", "/subscribe/"
+  ],
+  "title_patterns": [
+    "podcast:", "podcast ｜",
+    "ep.", "episode ",
+    "[video]", "watch:", "video:",
+    "[gallery]"
+  ]
+}

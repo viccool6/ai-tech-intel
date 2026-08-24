@@ -106,6 +106,11 @@ def main():
     # any of these get dropped at fetch time (before AI/translation cost).
     blacklist_path = BASE/"config/publisher_blacklist.json"
     blacklist = load_json(blacklist_path).get("domains", []) if blacklist_path.exists() else []
+    # Content-type skip patterns — drop RSS items whose URL path or title looks
+    # like podcasts/video/gallery/newsletter pages. Same rationale as
+    # blacklist: cheap to filter here, expensive to run AI on then discard.
+    skip_patterns_path = BASE/"config/skip_content_patterns.json"
+    skip_patterns = load_json(skip_patterns_path) if skip_patterns_path.exists() else {}
     if a.source:
         sources=[s for s in sources if s.get("id")==a.source]
         if not sources: logging.error("找不到source id：%s",a.source); return 2
@@ -290,7 +295,7 @@ def main():
     threshold=float(os.getenv("TITLE_SIMILARITY_THRESHOLD","0.88"))
     for source in sources:
         logging.info("抓取：%s",source.get("name"))
-        items,warning=fetch_source(source,a.hours,a.max_items,blacklist=blacklist)
+        items,warning=fetch_source(source,a.hours,a.max_items,blacklist=blacklist,skip_patterns=skip_patterns)
         if warning: logging.warning("%s：%s",source.get("name"),warning)
         fetched+=len(items)
         for item in items:

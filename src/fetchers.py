@@ -62,7 +62,25 @@ def _is_blacklisted(host: str, blacklist) -> bool:
     return any(host == b or host.endswith("." + b) for b in blacklist)
 
 
-def fetch_source(source: dict, hours: int, max_items: int, blacklist=()):
+def _skip_reason(url: str, title: str, skip_patterns) -> str:
+    """Return the pattern that matched (for logging), or empty string when no
+    pattern hit. url and title are checked separately: url_patterns look at
+    the path (case-insensitive substring) and title_patterns look at the raw
+    title (case-insensitive substring). Empty patterns dict → never skips."""
+    if not skip_patterns:
+        return ""
+    u = (url or "").lower()
+    t = (title or "").lower()
+    for p in skip_patterns.get("url_patterns", ()):
+        if p and p.lower() in u:
+            return f"url~{p}"
+    for p in skip_patterns.get("title_patterns", ()):
+        if p and p.lower() in t:
+            return f"title~{p}"
+    return ""
+
+
+def fetch_source(source: dict, hours: int, max_items: int, blacklist=(), skip_patterns=None):
     url = _feed_url(source)
     parsed = feedparser.parse(url)
     if not parsed.entries:
@@ -75,6 +93,7 @@ def fetch_source(source: dict, hours: int, max_items: int, blacklist=()):
     cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
     out = []
     blocked = 0
+    skipped_content = 0
     for e in parsed.entries:
         dt = _time(e)
         if dt and dt < cutoff: continue
@@ -85,6 +104,11 @@ def fetch_source(source: dict, hours: int, max_items: int, blacklist=()):
             blocked += 1
             logging.info("跳过黑名单域：%s（%s / %s）", host, source.get("id",""), title[:60])
             continue
+        reason = _skip_reason(link, title, skip_patterns)
+        if reason:
+            skipped_content += 1
+            logging.info("跳过内容类型 %s（%s / %s）", reason, source.get("id",""), title[:60])
+            continue
         out.append({
             "source_id":source.get("id",""), "source_name":source.get("name",""),
             "source_type":source.get("type",""), "layer":source.get("layer",""),
@@ -94,6 +118,11 @@ def fetch_source(source: dict, hours: int, max_items: int, blacklist=()):
         })
         if len(out) >= max_items: break
     warning = str(getattr(parsed, "bozo_exception", "")) if getattr(parsed,"bozo",False) else None
-    if blocked and not warning:
-        warning = f"黑名单命中 {blocked} 条已跳过"
+    extras = []
+    if blocked:
+        extras.append(f"黑名单 {blocked}")
+    if skipped_content:
+        extras.append(f"内容类型 {skipped_content}")
+    if extras and not warning:
+        warning = "已跳过：" + " / ".join(extras)
     return out, warning

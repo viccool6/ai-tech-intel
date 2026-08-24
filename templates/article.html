@@ -116,10 +116,15 @@ img.hero{display:block;max-width:420px;width:100%;height:auto;margin:14px auto 4
 .related a{display:flex;gap:10px;align-items:baseline;color:var(--ink);transition:color var(--dur) var(--ease)}
 .related a:hover{color:var(--accent)}
 .related .r-score{
-  flex:none;font-size:11px;font-weight:700;color:var(--muted);
-  min-width:22px;text-align:center;font-variant-numeric:tabular-nums;
-  border:1px solid var(--line-strong);border-radius:2px;padding:1px 4px;line-height:1.3
+  flex:none;font-size:15px;font-weight:700;
+  min-width:18px;text-align:center;font-variant-numeric:tabular-nums;
+  color:var(--faint);line-height:1
 }
+.related .r-score.s5{color:var(--score5)}
+.related .r-score.s4{color:var(--score4)}
+.related .r-score.s3{color:var(--score3)}
+.related .r-score.s2{color:var(--score2)}
+.related .r-score.s1{color:var(--score1)}
 .related .r-title{flex:1;font-size:13.5px;line-height:1.5}
 .related .r-meta{flex:none;font-size:12px;color:var(--faint);white-space:nowrap}
 
@@ -251,7 +256,7 @@ img.hero{display:block;max-width:420px;width:100%;height:auto;margin:14px auto 4
     {% for r in related %}
     <li>
       <a href="{{ url_for('article', article_id=r.id) }}">
-        <span class="r-score">{{ r.score or '–' }}</span>
+        <span class="r-score s{{ r.score or 1 }}">{{ r.score or '–' }}</span>
         <span class="r-title">{{ r.title_cn or r.title_original }}</span>
         <span class="r-meta">{{ r.publisher or r.source_name or '' }}{% if r.pub_date %} · {{ r.pub_date }}{% endif %}</span>
       </a>

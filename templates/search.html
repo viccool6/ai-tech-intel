@@ -35,10 +35,18 @@
   font-size:11px;letter-spacing:.14em;color:var(--faint);
   font-weight:600;text-transform:uppercase;padding-top:1px
 }
-.kw-list{display:flex;flex-wrap:wrap;column-gap:20px;row-gap:4px;font-size:13.5px}
-.kw-list a{color:var(--ink-soft);display:inline-flex;align-items:baseline;gap:5px}
-.kw-list a:hover{color:var(--accent)}
-.kw-list a.active{color:var(--ink);font-weight:600}
+/* Keyword list: default text-only (报刊风). Hover/active gets a soft pill
+   background so the interactive state echoes the b-toolbar pill controls
+   below — same rounded shape + surface-2 fill + line hairline. */
+.kw-list{display:flex;flex-wrap:wrap;column-gap:10px;row-gap:4px;font-size:13.5px}
+.kw-list a{
+  color:var(--ink-soft);display:inline-flex;align-items:baseline;gap:5px;
+  padding:3px 10px;margin:0 -10px;border-radius:var(--r-pill);
+  border:1px solid transparent;background:transparent;
+  transition:background var(--dur) var(--ease),border-color var(--dur) var(--ease),color var(--dur) var(--ease)
+}
+.kw-list a:hover{background:var(--surface-2);border-color:var(--line);color:var(--ink);margin:0}
+.kw-list a.active{background:var(--surface-2);border-color:var(--line-strong);color:var(--ink);font-weight:600;margin:0}
 .kw-list a.active::before{
   content:"■";color:var(--accent);font-size:8px;margin-right:4px;
   transform:translateY(-1px);display:inline-block
@@ -48,62 +56,60 @@
   font-size:11.5px;color:var(--faint);
   font-variant-numeric:tabular-nums;letter-spacing:.02em
 }
+.kw-list a:hover .n, .kw-list a.active .n{color:var(--muted)}
 @media(max-width:640px){
   .kw-row{grid-template-columns:1fr;gap:4px}
   .kw-cat{padding-top:0}
 }
 
-/* ============================ B4 toolbar: single-row vertical partitions ============================ */
-/* Search + three filter dropdowns + submit, all in one horizontal strip
-   separated by 1px vertical rules. Replaces the old two-row .q-row/.filter-row.
-   The whole strip is still a plain <form>, so hitting Enter in the search
-   field submits, and the hidden inputs at the bottom preserve sort/keyword/
-   page state (identical semantics to the old panel). */
+/* ============================ E2 toolbar: soft-pill controls ============================ */
+/* Every cell — search input, 3 filter dropdowns, submit — shares one visual
+   language: rounded pill, surface-2 fill, hairline border, subtle hover.
+   No vertical rules, no stark black button. Same font-size everywhere (14px)
+   so nothing steals the eye. Enter submits from the input; each select also
+   auto-submits on change via onchange="this.form.submit()" — the submit
+   button is retained for readers who visually expect one. */
 .b-toolbar{
-  display:flex;align-items:stretch;
-  border-bottom:1px solid var(--line-strong);
-  background:var(--surface);margin:0
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:16px 0;margin:0
 }
-.b-toolbar > *{border-right:1px solid var(--line)}
-.b-toolbar > *:last-child{border-right:0}
 .b-search-cell{
-  flex:1;position:relative;display:flex;align-items:center;
-  padding:10px 18px 10px 40px;min-width:220px
+  flex:1;min-width:280px;
+  display:flex;align-items:center;gap:10px;
+  padding:8px 16px;background:var(--surface-2);border:1px solid var(--line);
+  border-radius:var(--r-pill);transition:border-color var(--dur) var(--ease),background var(--dur) var(--ease)
 }
-.b-search-cell svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--faint);pointer-events:none}
+.b-search-cell:focus-within{border-color:var(--ink);background:var(--surface)}
+.b-search-cell svg{color:var(--faint);flex:none}
 .b-search-cell input{
   width:100%;border:0;background:transparent;font-family:inherit;
-  font-size:14px;color:var(--ink);outline:0;padding:2px 0
+  font-size:14px;color:var(--ink);outline:0;padding:0
 }
 .b-search-cell input::placeholder{color:var(--faint)}
-/* Native <select> inside a two-line label cell. Absolute-position the select
-   over the visible label so the cell doubles as a clickable dropdown. */
 .b-filter-cell{
-  position:relative;min-width:130px;padding:10px 30px 10px 18px;
-  font-size:12px;color:var(--muted);cursor:pointer;letter-spacing:.02em;
-  display:flex;flex-direction:column;justify-content:center;gap:1px
+  position:relative;display:flex;align-items:baseline;gap:6px;
+  padding:8px 14px;background:var(--surface-2);border:1px solid var(--line);
+  border-radius:var(--r-pill);cursor:pointer;transition:border-color var(--dur) var(--ease),background var(--dur) var(--ease)
 }
-.b-filter-cell .k{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);font-weight:600}
-.b-filter-cell .v{font-size:13.5px;color:var(--ink);font-weight:600;line-height:1.2}
-.b-filter-cell .caret{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:10px}
+.b-filter-cell:hover{border-color:var(--line-strong);background:var(--surface)}
+.b-filter-cell .k{font-size:14px;color:var(--faint)}
+.b-filter-cell .v{font-size:14px;color:var(--ink);font-weight:600}
+.b-filter-cell .caret{font-size:14px;color:var(--faint);margin-left:2px}
 .b-filter-cell select{
   position:absolute;inset:0;opacity:0;cursor:pointer;
-  font-family:inherit;font-size:14px;background:var(--surface)
+  font-family:inherit;font-size:14px
 }
-.b-filter-cell:hover .v{color:var(--accent)}
-.b-filter-cell:focus-within{background:var(--surface-2)}
 .b-submit{
-  border:0;background:var(--ink);color:#fff;font-family:inherit;
-  padding:0 30px;font-size:13px;letter-spacing:.08em;cursor:pointer;
-  transition:background var(--dur) var(--ease)
+  padding:8px 22px;border:1px solid var(--accent);color:var(--accent);
+  background:transparent;font-family:inherit;font-size:14px;font-weight:600;
+  border-radius:var(--r-pill);cursor:pointer;
+  transition:background var(--dur) var(--ease),color var(--dur) var(--ease)
 }
-.b-submit:hover{background:var(--accent)}
+.b-submit:hover{background:var(--accent);color:#fff}
 @media(max-width:720px){
-  .b-toolbar{flex-wrap:wrap}
-  .b-toolbar > *{border-right:0;border-bottom:1px solid var(--line)}
   .b-search-cell{flex:1 0 100%}
-  .b-filter-cell{flex:1 0 33%}
-  .b-submit{flex:1 0 100%;padding:12px}
+  .b-filter-cell{flex:1 0 calc(33% - 8px)}
+  .b-submit{flex:1 0 100%}
 }
 
 /* ---- active filters: every applied condition is visible and removable ---- */

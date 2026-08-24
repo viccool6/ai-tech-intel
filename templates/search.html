@@ -5,7 +5,6 @@
 {% block masthead_stats %}
 <div class="masthead-stats num">
   <span>累计归档 <b>{{ total_all }}</b> 篇</span>
-  {% if total != total_all %}<span>当前条件 <b>{{ total }}</b> 篇</span>{% endif %}
   <span>最近更新 <b>{{ latest_updated or '—' }}</b></span>
 </div>
 {% endblock %}

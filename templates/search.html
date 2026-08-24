@@ -251,34 +251,6 @@ body.compact .more{display:none !important}
 
 {% block content %}
 
-<section class="kw-hero">
-  {% set zero_hidden = keyword_stats | selectattr('count', 'equalto', 0) | rejectattr('keyword', 'in', active_keywords) | list | length %}
-  <div class="kw-eyebrow-row">
-    <p class="kw-eyebrow">监控关键词</p>
-    {% if zero_hidden > 0 %}
-      {% if show_zero %}
-        <a class="kw-eyebrow-toggle" href="{{ page_url(show_zero=None) }}">收起 0 命中</a>
-      {% else %}
-        <a class="kw-eyebrow-toggle" href="{{ page_url(show_zero=1) }}">显示全部（+{{ zero_hidden }} 未命中）</a>
-      {% endif %}
-    {% endif %}
-  </div>
-  {% for group in keyword_stats_grouped %}
-    <div class="kw-row">
-      <span class="kw-cat">{{ group.cat }}</span>
-      <div class="kw-list">
-        {% for item in group.entries %}
-          {% set is_active = (item.keyword in active_keywords) %}
-          {% if is_active or item.count > 0 or show_zero %}
-            <a class="{% if is_active %}active{% elif item.count == 0 %}zero{% endif %}"
-               href="{{ toggle_keyword_url(item.keyword) }}">{{ item.keyword }}<span class="n">{{ item.count }}</span></a>
-          {% endif %}
-        {% endfor %}
-      </div>
-    </div>
-  {% endfor %}
-</section>
-
 <form class="b-toolbar" method="get" action="{{ url_for('search') }}">
   <div class="b-search-cell">
     <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true">
@@ -330,6 +302,34 @@ body.compact .more{display:none !important}
   {% if kw_days and kw_days != '30' %}<input type="hidden" name="kw_days" value="{{ kw_days }}">{% endif %}
   {% if show_zero %}<input type="hidden" name="show_zero" value="1">{% endif %}
 </form>
+
+<section class="kw-hero">
+  {% set zero_hidden = keyword_stats | selectattr('count', 'equalto', 0) | rejectattr('keyword', 'in', active_keywords) | list | length %}
+  <div class="kw-eyebrow-row">
+    <p class="kw-eyebrow">监控关键词</p>
+    {% if zero_hidden > 0 %}
+      {% if show_zero %}
+        <a class="kw-eyebrow-toggle" href="{{ page_url(show_zero=None) }}">收起 0 命中</a>
+      {% else %}
+        <a class="kw-eyebrow-toggle" href="{{ page_url(show_zero=1) }}">显示全部（+{{ zero_hidden }} 未命中）</a>
+      {% endif %}
+    {% endif %}
+  </div>
+  {% for group in keyword_stats_grouped %}
+    <div class="kw-row">
+      <span class="kw-cat">{{ group.cat }}</span>
+      <div class="kw-list">
+        {% for item in group.entries %}
+          {% set is_active = (item.keyword in active_keywords) %}
+          {% if is_active or item.count > 0 or show_zero %}
+            <a class="{% if is_active %}active{% elif item.count == 0 %}zero{% endif %}"
+               href="{{ toggle_keyword_url(item.keyword) }}">{{ item.keyword }}<span class="n">{{ item.count }}</span></a>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  {% endfor %}
+</section>
 
 <div class="toolbar">
   <span class="toolbar-count">

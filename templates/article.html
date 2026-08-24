@@ -134,7 +134,6 @@ summary:hover{color:var(--accent)}
   <span class="badge score{{ article.score or 1 }}">重要性 {{ article.score or '–' }}{% if article.score_reason %}<span class="date-info" data-info style="margin-left:6px;color:currentColor;opacity:.7"><svg class="date-info-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="4.7" r="0.9" fill="currentColor"/><path d="M8 7.4V11.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span class="date-info-tip">AI 打分理由：{{ article.score_reason }}</span></span>{% endif %}</span>
   {% if not article.ai_succeeded %}<span class="fallback-tag" title="AI 处理失败，此分数由关键词规则给出，未经 AI 判断">规则打分（未经 AI）</span>{% endif %}
   {% for tag in article.industry_tags %}<span class="chip">{{ tag }}</span>{% endfor %}
-  {% for kw in article.matched_keyword_list %}<span class="chip chip-kw">{{ kw }}</span>{% endfor %}
 </div>
 
 <h1>{{ article.title_cn or article.title_original }}</h1>

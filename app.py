@@ -41,6 +41,19 @@ KEYWORD_GROUPS = [
     ("AI 应用",  ["OpenAI", "Anthropic"]),
 ]
 
+# Static tag → position mapping. Kept in code (not JSON, not AI-inferred)
+# because each tag has one deterministic upstream/mid/downstream position —
+# 晶圆代工 is always mid, no context can change that. Having the AI decide
+# per-article would add error surface for zero benefit.
+TAG_POSITIONS = {
+    "半导体材料": "上游", "设备": "上游",
+    "晶圆代工": "中游", "先进封装": "中游", "存储芯片": "中游",
+    "芯片设计": "中游", "光通信": "中游",
+    "服务器/系统": "下游", "电力/散热": "下游",
+    "云厂商": "下游", "大模型": "下游",
+}
+POSITION_ORDER = ["上游", "中游", "下游"]
+
 BASE = Path(__file__).resolve().parent
 
 # Single source of truth for search result pagination — change here and
@@ -250,6 +263,13 @@ def create_app() -> Flask:
             except ValueError:
                 display = pub[:16].replace("T", " ")
         art["published_display"] = display
+
+        # Which upstream/mid/downstream positions this article touches — a
+        # dedup'd, order-stable list derived from the article's industry_tags
+        # via TAG_POSITIONS. Used by the source-card row on the detail page.
+        tags = art.get("industry_tags") or []
+        positions_hit = {TAG_POSITIONS[t] for t in tags if t in TAG_POSITIONS}
+        art["chain_positions"] = [p for p in POSITION_ORDER if p in positions_hit]
 
         view = request.args.get("view", "both")
         if view not in ("both", "cn"):

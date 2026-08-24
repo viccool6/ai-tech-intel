@@ -144,6 +144,9 @@ summary:hover{color:var(--accent)}
 <div class="source-card">
   <div class="source-grid">
     <div class="label">来源</div><div>{{ article.publisher or article.source_name or "未识别" }}</div>
+    {% if article.chain_positions %}
+    <div class="label">产业位置</div><div>{{ article.chain_positions | join(' · ') }}</div>
+    {% endif %}
     <div class="label">作者</div>
     <div>
       {% if article.author_status == 'named' and article.author %}{{ article.author }}

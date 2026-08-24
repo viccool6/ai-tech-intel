@@ -1,7 +1,7 @@
 from __future__ import annotations
 import re
 COMPANIES={"NVIDIA":["nvidia","英伟达"],"TSMC":["tsmc","台积电"],"OpenAI":["openai"],"Google":["google","deepmind"],"Microsoft":["microsoft","微软"],"Amazon":["amazon","aws"],"Meta":["meta"],"Anthropic":["anthropic"],"SK Hynix":["sk hynix","海力士"],"Samsung":["samsung","三星"],"Broadcom":["broadcom","博通"],"Intel":["intel","英特尔"],"AMD":["amd"],"SpaceX":["spacex"],"xAI":["xai","grok"]}
-TAGS={"存储":["hbm","dram","nand","memory"],"先进封装":["cowos","advanced packaging","chiplet"],"晶圆代工":["foundry","wafer fab","tsmc"],"芯片设计":["gpu","asic","chip design"],"光通信":["cpo","optical","transceiver","inp"],"服务器/系统":["server","rack","system"],"云厂商":["cloud","aws","azure","google cloud"],"大模型":["model","llm","agent","openai","anthropic"],"电力/散热":["power","electricity","cooling","liquid cooling"],"设备":["euv","lithography","equipment"],"上游材料":["substrate","material","wafer"]}
+TAGS={"存储芯片":["hbm","dram","nand","memory"],"先进封装":["cowos","advanced packaging","chiplet"],"晶圆代工":["foundry","wafer fab","tsmc"],"芯片设计":["gpu","asic","chip design"],"光通信":["cpo","optical","transceiver","inp"],"服务器/系统":["server","rack","system"],"云厂商":["cloud","aws","azure","google cloud"],"大模型":["model","llm","agent","openai","anthropic"],"电力/散热":["power","electricity","cooling","liquid cooling"],"设备":["euv","lithography","equipment"],"半导体材料":["substrate","material","wafer"]}
 
 def fallback(title: str, text: str) -> dict:
     blob = f"{title}\n{text}".lower()

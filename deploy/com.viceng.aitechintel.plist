@@ -7,7 +7,8 @@
     3. launchctl load ~/Library/LaunchAgents/com.viceng.aitechintel.plist
     4. 立即试跑一次：launchctl start com.viceng.aitechintel
 
-  StartCalendarInterval 设 03:15 —— DeepSeek 平峰时段（00:30-08:30 CST）之内。
+  StartCalendarInterval 设 07:00 + 19:00 一天两次。配合 mac-daily.sh
+  里 --hours 14，两窗口重叠 4 小时不漏。
   RunAtLoad=false，避免每次 login/reboot 意外触发一次抓取。
   KeepAlive 不设，脚本一次性任务。
 -->
@@ -24,10 +25,16 @@
   </array>
 
   <key>StartCalendarInterval</key>
-  <dict>
-    <key>Hour</key><integer>3</integer>
-    <key>Minute</key><integer>15</integer>
-  </dict>
+  <array>
+    <dict>
+      <key>Hour</key><integer>7</integer>
+      <key>Minute</key><integer>0</integer>
+    </dict>
+    <dict>
+      <key>Hour</key><integer>19</integer>
+      <key>Minute</key><integer>0</integer>
+    </dict>
+  </array>
 
   <key>RunAtLoad</key>
   <false/>

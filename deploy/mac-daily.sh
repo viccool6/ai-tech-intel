@@ -25,8 +25,8 @@ echo ""
 echo "===== $(date '+%F %T') ====="
 
 # --- 1. 抓取 + AI + 翻译（DeepSeek 平峰时段跑，成本按场景 B ¥1/次内） ---
-echo "[step 1/4] run.py --hours 24"
-./.venv/bin/python run.py --hours 24 || {
+echo "[step 1/4] run.py --hours 14"
+./.venv/bin/python run.py --hours 14 || {
   echo "!! run.py 失败，abort（DB 未变化，下一轮再试）"
   exit 1
 }

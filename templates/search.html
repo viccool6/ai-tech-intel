@@ -63,8 +63,14 @@
     padding-top:0;font-size:11px;letter-spacing:.16em;
     text-transform:uppercase;color:var(--faint)
   }
-  .kw-list{row-gap:2px;column-gap:0}
-  .kw-list a{padding:2px 8px}
+  /* 每类关键词水平单行、右滑更多；隐藏滚动条保持干净外观 */
+  .kw-list{
+    flex-wrap:nowrap;overflow-x:auto;
+    scrollbar-width:none;-webkit-overflow-scrolling:touch;
+    row-gap:0;column-gap:0
+  }
+  .kw-list::-webkit-scrollbar{display:none}
+  .kw-list a{padding:2px 8px;white-space:nowrap;flex-shrink:0}
   .kw-list .n{display:none}
 }
 

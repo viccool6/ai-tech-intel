@@ -6,45 +6,104 @@
 <div class="masthead-stats num">
   <span>累计归档 <b>{{ total_all }}</b> 篇</span>
   {% if total != total_all %}<span>当前条件 <b>{{ total }}</b> 篇</span>{% endif %}
-  <span>最近更新 <b>{{ latest_updated[:16].replace('T',' ') if latest_updated else '—' }}</b></span>
+  <span>最近更新 <b>{{ latest_updated or '—' }}</b></span>
 </div>
 {% endblock %}
 
 {% block extra_style %}
-/* ============================ search panel ============================ */
-.panel{
-  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
-  padding:16px 18px;margin:20px 0 0;box-shadow:var(--sh-1)
+/* ============================ B4 hero: categorized keyword grid ============================ */
+/* No card chrome — the whole hero sits directly against the paper background,
+   separated by hairlines. Reads more like a printed contents page than a form. */
+.kw-hero{
+  border-top:1px solid var(--ink);
+  border-bottom:1px solid var(--line-strong);
+  padding:14px 0 10px;margin-top:20px
 }
-/* One-row layout: search input (wide) → three compact filters → 检索 button. */
-.q-row{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch}
-.q-field{position:relative;flex:1 1 320px}
-.q-field svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint);pointer-events:none}
-.q-field input{
-  width:100%;box-sizing:border-box;border:1px solid var(--line-strong);border-radius:var(--r);
-  padding:9px 12px 9px 36px;font-size:14px;font-family:inherit;background:var(--surface);color:var(--ink);
-  transition:border-color var(--dur) var(--ease),box-shadow var(--dur) var(--ease)
+.kw-eyebrow-row{display:flex;align-items:baseline;gap:14px;margin:0 0 10px}
+.kw-eyebrow{
+  font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;margin:0
 }
-.q-field input::placeholder{color:var(--faint)}
-.q-field input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-wash)}
-.q-hint{
-  position:absolute;right:10px;top:50%;transform:translateY(-50%);
-  font-size:11px;color:var(--faint);border:1px solid var(--line);border-radius:var(--r-sm);
-  padding:1px 6px;font-family:var(--mono);background:var(--surface-2);pointer-events:none
+.kw-eyebrow-toggle{font-size:12px;color:var(--muted);border-bottom:1px dotted var(--line-strong);margin-left:auto}
+.kw-eyebrow-toggle:hover{color:var(--accent);border-bottom-color:var(--accent)}
+.kw-row{
+  display:grid;grid-template-columns:88px 1fr;gap:20px;
+  padding:6px 0;align-items:baseline
 }
-.q-field input:focus ~ .q-hint{opacity:0}
-.filter-row{display:flex;gap:6px;align-items:stretch}
-.filter-row select{
-  min-width:110px;box-sizing:border-box;border:1px solid var(--line-strong);border-radius:var(--r);
-  padding:9px 12px;font-size:14px;font-family:inherit;background:var(--surface);color:var(--faint);
-  transition:border-color var(--dur) var(--ease),box-shadow var(--dur) var(--ease)
+.kw-row + .kw-row{border-top:1px dashed var(--line-soft)}
+.kw-cat{
+  font-size:11px;letter-spacing:.14em;color:var(--faint);
+  font-weight:600;text-transform:uppercase;padding-top:1px
 }
-.filter-row select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-wash)}
+.kw-list{display:flex;flex-wrap:wrap;column-gap:20px;row-gap:4px;font-size:13.5px}
+.kw-list a{color:var(--ink-soft);display:inline-flex;align-items:baseline;gap:5px}
+.kw-list a:hover{color:var(--accent)}
+.kw-list a.active{color:var(--ink);font-weight:600}
+.kw-list a.active::before{
+  content:"■";color:var(--accent);font-size:8px;margin-right:4px;
+  transform:translateY(-1px);display:inline-block
+}
+.kw-list a.zero{opacity:.4}
+.kw-list .n{
+  font-size:11.5px;color:var(--faint);
+  font-variant-numeric:tabular-nums;letter-spacing:.02em
+}
 @media(max-width:640px){
-  .q-row{flex-wrap:wrap}
-  .q-row .btn{width:100%}
-  .q-hint{display:none}
-  .filter-row select{min-width:calc(50% - 5px)}
+  .kw-row{grid-template-columns:1fr;gap:4px}
+  .kw-cat{padding-top:0}
+}
+
+/* ============================ B4 toolbar: single-row vertical partitions ============================ */
+/* Search + three filter dropdowns + submit, all in one horizontal strip
+   separated by 1px vertical rules. Replaces the old two-row .q-row/.filter-row.
+   The whole strip is still a plain <form>, so hitting Enter in the search
+   field submits, and the hidden inputs at the bottom preserve sort/keyword/
+   page state (identical semantics to the old panel). */
+.b-toolbar{
+  display:flex;align-items:stretch;
+  border-bottom:1px solid var(--line-strong);
+  background:var(--surface);margin:0
+}
+.b-toolbar > *{border-right:1px solid var(--line)}
+.b-toolbar > *:last-child{border-right:0}
+.b-search-cell{
+  flex:1;position:relative;display:flex;align-items:center;
+  padding:10px 18px 10px 40px;min-width:220px
+}
+.b-search-cell svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--faint);pointer-events:none}
+.b-search-cell input{
+  width:100%;border:0;background:transparent;font-family:inherit;
+  font-size:14px;color:var(--ink);outline:0;padding:2px 0
+}
+.b-search-cell input::placeholder{color:var(--faint)}
+/* Native <select> inside a two-line label cell. Absolute-position the select
+   over the visible label so the cell doubles as a clickable dropdown. */
+.b-filter-cell{
+  position:relative;min-width:130px;padding:10px 30px 10px 18px;
+  font-size:12px;color:var(--muted);cursor:pointer;letter-spacing:.02em;
+  display:flex;flex-direction:column;justify-content:center;gap:1px
+}
+.b-filter-cell .k{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);font-weight:600}
+.b-filter-cell .v{font-size:13.5px;color:var(--ink);font-weight:600;line-height:1.2}
+.b-filter-cell .caret{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:10px}
+.b-filter-cell select{
+  position:absolute;inset:0;opacity:0;cursor:pointer;
+  font-family:inherit;font-size:14px;background:var(--surface)
+}
+.b-filter-cell:hover .v{color:var(--accent)}
+.b-filter-cell:focus-within{background:var(--surface-2)}
+.b-submit{
+  border:0;background:var(--ink);color:#fff;font-family:inherit;
+  padding:0 30px;font-size:13px;letter-spacing:.08em;cursor:pointer;
+  transition:background var(--dur) var(--ease)
+}
+.b-submit:hover{background:var(--accent)}
+@media(max-width:720px){
+  .b-toolbar{flex-wrap:wrap}
+  .b-toolbar > *{border-right:0;border-bottom:1px solid var(--line)}
+  .b-search-cell{flex:1 0 100%}
+  .b-filter-cell{flex:1 0 33%}
+  .b-submit{flex:1 0 100%;padding:12px}
 }
 
 /* ---- active filters: every applied condition is visible and removable ---- */
@@ -63,27 +122,6 @@
 }
 .applied-clear{font-size:12px;color:var(--muted);border-bottom:1px dotted var(--line-strong)}
 .applied-clear:hover{color:var(--accent);border-bottom-color:var(--accent)}
-
-/* ---- keyword watchlist ---- */
-.kw-block{margin-top:16px;border-top:1px dashed var(--line);padding-top:14px}
-.kw-block.kw-block-top{margin-top:0;border-top:0;padding-top:0;margin-bottom:16px;border-bottom:1px dashed var(--line);padding-bottom:14px}
-.kw-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:9px}
-.kw-title{font-size:12.5px;color:var(--muted);font-weight:600}
-.keyword-list{display:flex;flex-wrap:wrap;gap:7px}
-.keyword-chip{
-  display:inline-flex;align-items:baseline;gap:5px;
-  border:1px solid var(--line-strong);background:var(--surface-2);
-  border-radius:var(--r-pill);padding:3px 11px;font-size:12.5px;color:var(--ink-soft);line-height:1.6;
-  transition:background var(--dur) var(--ease),color var(--dur) var(--ease),border-color var(--dur) var(--ease),transform var(--dur) var(--ease)
-}
-.keyword-chip .n{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
-.keyword-chip:hover{background:var(--ink);color:#fff;border-color:var(--ink);transform:translateY(-1px)}
-.keyword-chip:hover .n{color:rgba(255,255,255,.7)}
-.keyword-chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-.keyword-chip.active .n{color:rgba(255,255,255,.8)}
-.keyword-chip.zero{opacity:.45}
-.toggle-link{font-size:12px;color:var(--muted);align-self:center;border-bottom:1px dotted var(--line-strong)}
-.toggle-link:hover{color:var(--accent);border-bottom-color:var(--accent)}
 
 /* ---- results toolbar: sticks under the masthead while scrolling ---- */
 .toolbar{
@@ -206,89 +244,84 @@ body.compact .more{display:none !important}
 
 {% block content %}
 
-<form class="panel" method="get" action="{{ url_for('search') }}">
-  <div class="kw-block kw-block-top">
-    <div class="kw-head">
-      <span class="kw-title">监控关键词</span>
-    </div>
-    {% set zero_hidden = keyword_stats | selectattr('count', 'equalto', 0) | rejectattr('keyword', 'in', active_keywords) | list | length %}
-    <div class="keyword-list">
-      {% for item in keyword_stats %}
-        {% set is_active = (item.keyword in active_keywords) %}
-        {% if is_active or item.count > 0 or show_zero %}
-          {% if is_active %}
-            <a class="keyword-chip active" href="{{ toggle_keyword_url(item.keyword) }}">{{ item.keyword }}<span class="n">{{ item.count }}</span></a>
-          {% else %}
-            <a class="keyword-chip{% if item.count == 0 %} zero{% endif %}" href="{{ toggle_keyword_url(item.keyword) }}">{{ item.keyword }}<span class="n">{{ item.count }}</span></a>
-          {% endif %}
-        {% endif %}
-      {% endfor %}
-      {% if zero_hidden > 0 %}
-        {% if show_zero %}
-          <a class="toggle-link" href="{{ page_url(show_zero=None) }}">收起 0 命中</a>
-        {% else %}
-          <a class="toggle-link" href="{{ page_url(show_zero=1) }}">显示全部（+{{ zero_hidden }} 未命中）</a>
-        {% endif %}
+<section class="kw-hero">
+  {% set zero_hidden = keyword_stats | selectattr('count', 'equalto', 0) | rejectattr('keyword', 'in', active_keywords) | list | length %}
+  <div class="kw-eyebrow-row">
+    <p class="kw-eyebrow">监控关键词</p>
+    {% if zero_hidden > 0 %}
+      {% if show_zero %}
+        <a class="kw-eyebrow-toggle" href="{{ page_url(show_zero=None) }}">收起 0 命中</a>
+      {% else %}
+        <a class="kw-eyebrow-toggle" href="{{ page_url(show_zero=1) }}">显示全部（+{{ zero_hidden }} 未命中）</a>
       {% endif %}
-    </div>
+    {% endif %}
   </div>
-
-  <div class="q-row">
-    <div class="q-field">
-      <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true">
-        <circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.6"/>
-        <path d="M10.4 10.4L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-      </svg>
-      <input id="q" name="q" type="search" placeholder="搜索标题、摘要、正文、公司、标签、信源……"
-             value="{{ q }}" autocomplete="off">
-      <span class="q-hint">/</span>
+  {% for group in keyword_stats_grouped %}
+    <div class="kw-row">
+      <span class="kw-cat">{{ group.cat }}</span>
+      <div class="kw-list">
+        {% for item in group.entries %}
+          {% set is_active = (item.keyword in active_keywords) %}
+          {% if is_active or item.count > 0 or show_zero %}
+            <a class="{% if is_active %}active{% elif item.count == 0 %}zero{% endif %}"
+               href="{{ toggle_keyword_url(item.keyword) }}">{{ item.keyword }}<span class="n">{{ item.count }}</span></a>
+          {% endif %}
+        {% endfor %}
+      </div>
     </div>
-    <div class="filter-row">
-      <select name="source" aria-label="信源">
-        <option value="">全部信源</option>
-        {% for s in sources %}<option value="{{ s }}"{% if s == source %} selected{% endif %}>{{ s }}</option>{% endfor %}
-      </select>
-      <select name="score" aria-label="评分">
-        <option value="0"{% if min_score == 0 %} selected{% endif %}>全部评分</option>
-        <option value="5"{% if min_score == 5 %} selected{% endif %}>仅5分</option>
-        <option value="4"{% if min_score == 4 %} selected{% endif %}>4分及以上</option>
-        <option value="3"{% if min_score == 3 %} selected{% endif %}>3分及以上</option>
-        <option value="2"{% if min_score == 2 %} selected{% endif %}>2分及以上</option>
-      </select>
-      <select name="days" aria-label="时间范围">
-        <option value="all"{% if days == 'all' %} selected{% endif %}>全部时间</option>
-        <option value="1"{% if days == '1' %} selected{% endif %}>最近1天</option>
-        <option value="7"{% if days == '7' %} selected{% endif %}>最近7天</option>
-        <option value="30"{% if days == '30' %} selected{% endif %}>最近30天</option>
-        <option value="90"{% if days == '90' %} selected{% endif %}>最近90天</option>
-      </select>
-    </div>
-    <button class="btn" type="submit">检索</button>
-    {# Params with no visible control in this form are carried as hidden fields
-       so hitting 检索 doesn't silently reset the keyword chip, the sort choice,
-       or the keyword-count window the reader had set. #}
-    {% for kw in active_keywords %}<input type="hidden" name="keyword" value="{{ kw }}">{% endfor %}
-    {% if sort and sort != 'relevance' %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
-    {% if kw_days and kw_days != '30' %}<input type="hidden" name="kw_days" value="{{ kw_days }}">{% endif %}
-    {% if show_zero %}<input type="hidden" name="show_zero" value="1">{% endif %}
-  </div>
+  {% endfor %}
+</section>
 
-  {# Applied conditions echoed back as removable chips. Each × links to the
-     same URL minus that one param, so a reader can peel filters off one at a
-     time instead of clearing everything and starting over. #}
-  {% set has_filters = q or source or min_score or (days and days != 'all') or active_keywords %}
-  {% if has_filters %}
-  <div class="applied">
-    <span class="applied-label">当前条件</span>
-    {% if q %}<a class="applied-chip" href="{{ page_url(q=None, page=None) }}">词：{{ q }}<span class="x">×</span></a>{% endif %}
-    {% for kw in active_keywords %}<a class="applied-chip" href="{{ toggle_keyword_url(kw) }}">{{ kw }}<span class="x">×</span></a>{% endfor %}
-    {% if source %}<a class="applied-chip" href="{{ page_url(source=None, page=None) }}">信源：{{ source }}<span class="x">×</span></a>{% endif %}
-    {% if min_score %}<a class="applied-chip" href="{{ page_url(score=None, page=None) }}">{% if min_score == 5 %}仅 5 分{% else %}{{ min_score }} 分及以上{% endif %}<span class="x">×</span></a>{% endif %}
-    {% if days and days != 'all' %}<a class="applied-chip" href="{{ page_url(days=None, page=None) }}">最近 {{ days }} 天<span class="x">×</span></a>{% endif %}
-    <a class="applied-clear" href="{{ url_for('search') }}">全部清空</a>
+<form class="b-toolbar" method="get" action="{{ url_for('search') }}">
+  <div class="b-search-cell">
+    <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true">
+      <circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <path d="M10.4 10.4L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+    <input id="q" name="q" type="search" placeholder="搜索标题、摘要、正文、公司、标签、信源……"
+           value="{{ q }}" autocomplete="off">
   </div>
-  {% endif %}
-
+  <label class="b-filter-cell">
+    <span class="k">信源</span>
+    <span class="v">{{ source or '全部' }}</span>
+    <span class="caret">▾</span>
+    <select name="source" aria-label="信源" onchange="this.form.submit()">
+      <option value="">全部信源</option>
+      {% for s in sources %}<option value="{{ s }}"{% if s == source %} selected{% endif %}>{{ s }}</option>{% endfor %}
+    </select>
+  </label>
+  <label class="b-filter-cell">
+    <span class="k">评分</span>
+    <span class="v">{% if min_score == 0 %}全部{% elif min_score == 5 %}仅 5 分{% else %}{{ min_score }} 分+{% endif %}</span>
+    <span class="caret">▾</span>
+    <select name="score" aria-label="评分" onchange="this.form.submit()">
+      <option value="0"{% if min_score == 0 %} selected{% endif %}>全部评分</option>
+      <option value="5"{% if min_score == 5 %} selected{% endif %}>仅5分</option>
+      <option value="4"{% if min_score == 4 %} selected{% endif %}>4分及以上</option>
+      <option value="3"{% if min_score == 3 %} selected{% endif %}>3分及以上</option>
+      <option value="2"{% if min_score == 2 %} selected{% endif %}>2分及以上</option>
+    </select>
+  </label>
+  <label class="b-filter-cell">
+    <span class="k">时间</span>
+    <span class="v">{% if days == 'all' %}全部{% else %}最近 {{ days }} 天{% endif %}</span>
+    <span class="caret">▾</span>
+    <select name="days" aria-label="时间范围" onchange="this.form.submit()">
+      <option value="all"{% if days == 'all' %} selected{% endif %}>全部时间</option>
+      <option value="1"{% if days == '1' %} selected{% endif %}>最近1天</option>
+      <option value="7"{% if days == '7' %} selected{% endif %}>最近7天</option>
+      <option value="30"{% if days == '30' %} selected{% endif %}>最近30天</option>
+      <option value="90"{% if days == '90' %} selected{% endif %}>最近90天</option>
+    </select>
+  </label>
+  <button class="b-submit" type="submit">检索</button>
+  {# Params with no visible control here are carried as hidden fields so
+     hitting 检索 doesn't silently reset the active keyword chips, the sort
+     choice, or the keyword-count window. #}
+  {% for kw in active_keywords %}<input type="hidden" name="keyword" value="{{ kw }}">{% endfor %}
+  {% if sort and sort != 'relevance' %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
+  {% if kw_days and kw_days != '30' %}<input type="hidden" name="kw_days" value="{{ kw_days }}">{% endif %}
+  {% if show_zero %}<input type="hidden" name="show_zero" value="1">{% endif %}
 </form>
 
 <div class="toolbar">
@@ -298,18 +331,17 @@ body.compact .more{display:none !important}
 
   <span class="toolbar-group">
     排序
-    {# Sort is actionable whenever there's a ranking signal:
-       q typed (FTS or LIKE mode) OR a keyword chip active (list mode with
-       keyword filter, ranked by keyword text position via field weight). #}
+    {# 时间 is always clickable — chronological is a valid order regardless
+       of query. 相关度 needs a ranking signal (q typed OR active keyword),
+       otherwise it's grayed out. #}
+    {% set has_rank_signal = mode in ('fts', 'like') or (mode == 'list' and active_keywords) %}
     <span class="seg">
-    {% if mode in ('fts', 'like') or (mode == 'list' and active_keywords) %}
-      {% if sort == 'relevance' %}<span class="on">相关度</span>{% else %}<a href="{{ page_url(sort='relevance', page=None) }}">相关度</a>{% endif %}
+      {% if has_rank_signal %}
+        {% if sort == 'relevance' %}<span class="on">相关度</span>{% else %}<a href="{{ page_url(sort='relevance', page=None) }}">相关度</a>{% endif %}
+      {% else %}
+        <span class="off" title="输入检索词或选关键词后可用">相关度</span>
+      {% endif %}
       {% if sort == 'date' %}<span class="on">时间</span>{% else %}<a href="{{ page_url(sort='date', page=None) }}">时间</a>{% endif %}
-    {% else %}
-      {# Nothing to rank against — both muted. Underlying order stays date. #}
-      <span class="off" title="未输入检索词">相关度</span>
-      <span class="off" title="未输入检索词">时间</span>
-    {% endif %}
     </span>
   </span>
 

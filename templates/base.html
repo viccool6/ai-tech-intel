@@ -110,6 +110,16 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,su
    splitting the empty space between them). Other pages (article/login)
    have no stats, so logout keeps its own auto and hugs the right edge. */
 body.page-search .masthead-logout{margin-left:16px}
+
+/* Mobile: masthead wraps to multiple lines; anchor 退出 to the bottom-right
+   corner of the black bar so it doesn't drift to a new line all alone at the
+   left. absolute positioning avoids interfering with the flex wrap of
+   title/kicker/stats above. */
+@media(max-width:640px){
+  .masthead{position:relative}
+  .masthead-logout{position:absolute;bottom:12px;right:20px;margin:0}
+  .masthead-inner{padding-right:88px}
+}
 .masthead-logout:hover{color:#fff;border-color:rgba(244,239,228,.6)}
 @media(max-width:700px){
   .masthead-kicker{border-left:none;padding-left:0}

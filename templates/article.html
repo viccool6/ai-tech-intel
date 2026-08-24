@@ -128,7 +128,7 @@ summary:hover{color:var(--accent)}
   </div>
 </div>
 
-<div class="back"><a href="{{ back_search_url() }}">← 返回检索结果</a></div>
+<div class="back"><a href="{{ back_search_url() }}">← 返回</a></div>
 
 <div class="head-meta">
   <span class="badge score{{ article.score or 1 }}">重要性 {{ article.score or '–' }}{% if article.score_reason %}<span class="date-info" data-info style="margin-left:6px;color:currentColor;opacity:.7"><svg class="date-info-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="4.7" r="0.9" fill="currentColor"/><path d="M8 7.4V11.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span class="date-info-tip">AI 打分理由：{{ article.score_reason }}</span></span>{% endif %}</span>

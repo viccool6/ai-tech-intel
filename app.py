@@ -112,7 +112,11 @@ def create_app() -> Flask:
         if request.endpoint in PUBLIC_ENDPOINTS:
             return None
         # Preserve where the reader was headed so login can bounce them back.
-        return redirect(url_for("login", next=request.full_path.rstrip("?")))
+        # request.script_root carries the /ai-news-2 prefix (from ProxyFix
+        # x_prefix); without it, next="/" would point at the domain root,
+        # not our subpath, and the user would end up on the shared main site.
+        nxt = request.script_root + request.full_path.rstrip("?")
+        return redirect(url_for("login", next=nxt))
 
     @app.route("/login", methods=["GET", "POST"])
     def login():
@@ -124,9 +128,13 @@ def create_app() -> Flask:
                 session.permanent = True
                 session["auth"] = True
                 nxt = request.args.get("next") or request.form.get("next") or url_for("search")
-                # Only allow same-app redirects; ignore protocol-relative or
-                # absolute URLs to prevent open-redirect abuse.
-                if not nxt.startswith("/"):
+                # Only redirect back to paths under our own script root — an
+                # attacker crafting ?next=//evil.com or ?next=/ (colleague's
+                # site) would otherwise escape our app. Both plain "/" and
+                # any absolute URL fall through to url_for('search').
+                script_root = request.script_root or ""
+                app_root = script_root + "/"
+                if not (nxt == script_root or nxt.startswith(app_root)):
                     nxt = url_for("search")
                 return redirect(nxt)
             error = "密码不对"

@@ -104,6 +104,12 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,su
   padding:4px 10px;border-radius:var(--r-sm);margin-left:auto;
   transition:color var(--dur) var(--ease),border-color var(--dur) var(--ease)
 }
+/* On the search page, masthead-stats already claims margin-left:auto and
+   pushes itself right; setting logout to a fixed gap keeps the two glued
+   together as a right-aligned pair (avoids the extra `auto` on logout
+   splitting the empty space between them). Other pages (article/login)
+   have no stats, so logout keeps its own auto and hugs the right edge. */
+body.page-search .masthead-logout{margin-left:16px}
 .masthead-logout:hover{color:#fff;border-color:rgba(244,239,228,.6)}
 @media(max-width:700px){
   .masthead-kicker{border-left:none;padding-left:0}
